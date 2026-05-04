@@ -158,9 +158,10 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess, onUploadMessag
         return response.json();
     };
 
-    const createPreview = (file: File, kind: MediaKind) => {
+    const createPreview = (file: Blob | File, kind: MediaKind) => {
         const url = URL.createObjectURL(file);
-        setPreview({ url, name: file.name, kind });
+        const name = file instanceof File ? file.name : kind;
+        setPreview({ url, name, kind });
     };
 
     const handleFiles = async (files: FileList | null) => {

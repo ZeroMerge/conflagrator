@@ -14,7 +14,7 @@ const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789→#@!?';
 
 function useScramble(text: string) {
   const [display, setDisplay] = useState(text);
-  const timer = useRef<ReturnType<typeof setInterval>>();
+  const timer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
 
   const scramble = useCallback(() => {
     clearInterval(timer.current);

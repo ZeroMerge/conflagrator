@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { X, ChevronRight, ChevronLeft } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
-import { bookText, parseAndPaginate } from '@/data/book-text';
+import { parseAndPaginate } from '@/data/book-text';
 import type { ParsedPage } from '@/data/book-text';
 
 /* ══════════════════════════════
@@ -206,7 +206,7 @@ const ChapterOpenerPage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ pa
   </div>
 );
 
-const PullQuotePage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page, isLeft }) => (
+const PullQuotePage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page }) => (
   <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden"
     style={{ background: '#FAF8F3', padding: '48px 36px' }}>
     <div style={{ position: 'relative', zIndex: 1, textAlign: 'center' }}>
@@ -354,7 +354,6 @@ const FullScreenReader: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }, [flipNext, flipPrev, onClose]);
 
   const totalPages = pages.length;
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
     <div className="fixed inset-0 z-[1000] bg-deep-black flex flex-col items-center justify-center animate-in fade-in duration-500">
