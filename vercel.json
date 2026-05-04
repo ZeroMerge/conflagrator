@@ -1,0 +1,14 @@
+{
+    "buildCommand": "npm run build",
+    "devCommand": "npm run dev:vite",
+    "installCommand": "npm install",
+    "env": {
+        "CLOUDINARY_CLOUD_NAME": "@CLOUDINARY_CLOUD_NAME",
+        "CLOUDINARY_API_KEY": "@CLOUDINARY_API_KEY",
+        "CLOUDINARY_API_SECRET": "@CLOUDINARY_API_SECRET",
+        "CLOUDINARY_UPLOAD_PRESET": "@CLOUDINARY_UPLOAD_PRESET",
+        "CLOUDINARY_FOLDER": "@CLOUDINARY_FOLDER",
+        "ADMIN_PASSWORD": "@ADMIN_PASSWORD",
+        "SESSION_SECRET": "@SESSION_SECRET"
+    }
+}
