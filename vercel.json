@@ -1,5 +1,17 @@
 {
-    "buildCommand": "npm run build",
-    "devCommand": "npm run dev:vite",
-    "installCommand": "npm install"
+    "cleanUrls": true,
+    "trailingSlash": false,
+    "rewrites": [
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
+        }
+    ],
+    "redirects": [
+        {
+            "source": "/old-page",
+            "destination": "/new-page",
+            "permanent": true
+        }
+    ]
 }
