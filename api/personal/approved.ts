@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fs from 'fs';
 import path from 'path';
-import { listApprovedUploads } from '../_lib/personalUploads';
 
+// Read static manifest — always available, never fails
 const readManifestFallback = () => {
-    const manifestPath = path.join(process.cwd(), 'public', 'personal-manifest.json');
-    if (!fs.existsSync(manifestPath)) return [];
-
     try {
+        const manifestPath = path.join(process.cwd(), 'public', 'personal-manifest.json');
+        if (!fs.existsSync(manifestPath)) return [];
+
         const raw = fs.readFileSync(manifestPath, 'utf8');
         const list = JSON.parse(raw);
         if (!Array.isArray(list)) return [];
@@ -15,10 +15,8 @@ const readManifestFallback = () => {
         return list
             .map((entry: any) => {
                 if (typeof entry === 'string') {
-                    const normalized = entry.replace(/\\/g, '/');
-                    const filename = normalized.split('/').pop() || '';
+                    const filename = entry.replace(/\\/g, '/').split('/').pop() || '';
                     if (!filename) return null;
-
                     return {
                         publicId: `static:${filename}`,
                         secureUrl: `/images/personal/${encodeURIComponent(filename)}`,
@@ -32,7 +30,6 @@ const readManifestFallback = () => {
                         approvedBy: 'static-manifest',
                     };
                 }
-
                 if (entry && typeof entry.filename === 'string') {
                     const filename = entry.filename;
                     return {
@@ -48,7 +45,6 @@ const readManifestFallback = () => {
                         approvedBy: 'static-manifest',
                     };
                 }
-
                 return null;
             })
             .filter(Boolean);
@@ -57,20 +53,44 @@ const readManifestFallback = () => {
     }
 };
 
+// Lazy DB query — only runs if DATABASE_URL is available
+const fetchDbApproved = async () => {
+    const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
+    if (!dbUrl) return [];
+
+    const { neon } = await import('@neondatabase/serverless');
+    const sql = neon(dbUrl);
+    const rows = await sql(
+        `SELECT * FROM personal_uploads WHERE status = 'approved' ORDER BY approved_at DESC NULLS LAST, created_at DESC;`
+    );
+
+    return rows.map((row: any) => ({
+        publicId: row.public_id,
+        secureUrl: row.secure_url,
+        resourceType: row.resource_type,
+        format: row.format,
+        bytes: row.bytes == null ? null : Number(row.bytes),
+        folder: row.folder,
+        status: row.status,
+        createdAt: row.created_at,
+        approvedAt: row.approved_at,
+        approvedBy: row.approved_by,
+    }));
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
-    // Always load static manifest items first (never fails)
+    // Static manifest always loads first — never fails
     const fallbackItems = readManifestFallback();
 
     let dbItems: any[] = [];
     try {
-        dbItems = await listApprovedUploads();
-    } catch {
-        // Database unavailable — serve static manifest only
-        console.warn('[approved] Database unavailable, using static manifest fallback');
+        dbItems = await fetchDbApproved();
+    } catch (err) {
+        console.warn('[approved] DB fetch failed, using static fallback:', err);
         return res.status(200).json({ items: fallbackItems });
     }
 

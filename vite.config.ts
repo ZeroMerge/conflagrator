@@ -7,7 +7,7 @@ import { apiDevServer } from './api-dev-server.mjs'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [inspectAttr(), react(), apiDevServer()],
   server: {
     port: 3000,
