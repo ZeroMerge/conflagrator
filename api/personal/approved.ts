@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import fs from 'fs';
 import path from 'path';
+import { listApprovedUploads } from '../_lib/personalUploads';
 
 // Read static manifest — always available, never fails
 const readManifestFallback = () => {
@@ -53,31 +54,6 @@ const readManifestFallback = () => {
     }
 };
 
-// Lazy DB query — only runs if DATABASE_URL is available
-const fetchDbApproved = async () => {
-    const dbUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
-    if (!dbUrl) return [];
-
-    const { neon } = await import('@neondatabase/serverless');
-    const sql = neon(dbUrl);
-    const rows = await sql(
-        `SELECT * FROM personal_uploads WHERE status = 'approved' ORDER BY approved_at DESC NULLS LAST, created_at DESC;`
-    );
-
-    return rows.map((row: any) => ({
-        publicId: row.public_id,
-        secureUrl: row.secure_url,
-        resourceType: row.resource_type,
-        format: row.format,
-        bytes: row.bytes == null ? null : Number(row.bytes),
-        folder: row.folder,
-        status: row.status,
-        createdAt: row.created_at,
-        approvedAt: row.approved_at,
-        approvedBy: row.approved_by,
-    }));
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method not allowed' });
@@ -88,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let dbItems: any[] = [];
     try {
-        dbItems = await fetchDbApproved();
+        dbItems = await listApprovedUploads();
     } catch (err) {
         console.warn('[approved] DB fetch failed, using static fallback:', err);
         return res.status(200).json({ items: fallbackItems });
