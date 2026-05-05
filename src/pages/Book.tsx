@@ -2,8 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 import { X, ChevronRight, ChevronLeft, Flame, Users, Lightbulb, Gem, Shield, Globe, Eye } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
-import { parseAndPaginate } from '@/data/book-text';
-import type { ParsedPage } from '@/data/book-text';
+import type { ParsedPage, TextBlock } from '@/data/book-text';
+
 
 /* ══════════════════════════════
    CHAPTERS META 
@@ -293,50 +293,166 @@ const PullQuotePage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page }
   </div>
 );
 
-const BodyPage: React.FC<{ page: ParsedPage; pageNum: number; isLeft: boolean }> = ({ page, pageNum, isLeft }) => {
-  const paragraphs = (page.content || '').split(/\n\n+/).filter(Boolean);
+/** Dedicated page for DEDICATION / ACKNOWLEDGMENT sections. */
+const SectionPage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page, isLeft }) => {
+  const paragraphs = (page.content || '').split(/\n\n+|\n/).filter(Boolean);
+
+  // Notebook line spacing must match line-height × font-size
+  // fontSize 15.5px × lineHeight 1.9 ≈ 29.45px per line
+  const LINE_H = 29.5;
 
   return (
-    <div className="w-full h-full relative overflow-hidden"
-      style={{ background: '#FAF8F3', padding: '44px 36px 36px' }}>
-
+    <div
+      className="w-full h-full relative overflow-hidden"
+      style={{
+        // Parchment base
+        background: '#faf7f2',
+        // Faint blue ruled-notebook lines
+        backgroundImage: [
+          // paper grain (very subtle)
+          'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'200\' height=\'200\' filter=\'url(%23n)\' opacity=\'0.025\'/%3E%3C/svg%3E")',
+          // horizontal ruled lines
+          `repeating-linear-gradient(to bottom, transparent 0px, transparent ${LINE_H - 1}px, rgba(100,140,220,0.13) ${LINE_H - 1}px, rgba(100,140,220,0.13) ${LINE_H}px)`,
+        ].join(', '),
+        backgroundSize: '200px 200px, 100% ' + LINE_H + 'px',
+        backgroundPosition: '0 0, 0 60px', // offset lines so they start below the section title
+        padding: '52px 36px 44px',
+      }}
+    >
       {/* Spine shadow */}
       <div style={{
         position: 'absolute',
         [isLeft ? 'right' : 'left']: 0,
-        top: 0, bottom: 0, width: 20,
+        top: 0, bottom: 0, width: 18,
+        pointerEvents: 'none',
         background: isLeft
           ? 'linear-gradient(to left, rgba(0,0,0,0.07), transparent)'
           : 'linear-gradient(to right, rgba(0,0,0,0.07), transparent)',
       }} />
 
+      {/* Left red margin rule — classic notebook look */}
+      <div style={{
+        position: 'absolute',
+        left: 44,
+        top: 0,
+        bottom: 0,
+        width: 1,
+        background: 'rgba(220,80,80,0.18)',
+        pointerEvents: 'none',
+      }} />
+
       <div style={{ position: 'relative', zIndex: 1 }}>
+        {/* Section label */}
+        <p style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 900,
+          fontSize: 8.5,
+          letterSpacing: '0.34em',
+          textTransform: 'uppercase',
+          color: '#C8000D',
+          marginBottom: 8,
+        }}>
+          {page.sectionTitle}
+        </p>
+        <div style={{ width: 28, height: 2, background: '#C8000D', marginBottom: 22 }} />
+
+        {paragraphs.map((para, i) => (
+          <p key={i} style={{
+            fontFamily: 'Georgia, serif',
+            fontSize: 15.5,
+            lineHeight: LINE_H / 15.5,
+            color: '#1c1c1c',
+            marginBottom: 0,            // lines must align to grid — no extra gap
+            marginTop: 0,
+            textAlign: 'justify',
+            textIndent: i === 0 ? 0 : '1.3em',
+          }}>
+            {para}
+          </p>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const BodyPage: React.FC<{ page: ParsedPage; pageNum: number; isLeft: boolean }> = ({ page, pageNum, isLeft }) => {
+  const paragraphs = (page.content || '').split(/\n\n+/).filter(Boolean);
+  const showDropCap = !!page.isChapterStart;
+
+  // Line height values must match the notebook rule spacing
+  const FONT_SIZE = 15.5;
+  const LINE_H = 29.5; // px — ≈ fontSize × 1.9
+
+  return (
+    <div
+      className="w-full h-full relative overflow-hidden"
+      style={{
+        background: '#faf7f2',
+        backgroundImage: [
+          'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'200\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'200\' height=\'200\' filter=\'url(%23n)\' opacity=\'0.025\'/%3E%3C/svg%3E")',
+          `repeating-linear-gradient(to bottom, transparent 0px, transparent ${LINE_H - 1}px, rgba(100,140,220,0.13) ${LINE_H - 1}px, rgba(100,140,220,0.13) ${LINE_H}px)`,
+        ].join(', '),
+        backgroundSize: '200px 200px, 100% ' + LINE_H + 'px',
+        backgroundPosition: '0 0, 0 52px',
+        padding: '48px 36px 44px',
+      }}
+    >
+      {/* Spine shadow */}
+      <div style={{
+        position: 'absolute',
+        [isLeft ? 'right' : 'left']: 0,
+        top: 0, bottom: 0, width: 20,
+        pointerEvents: 'none',
+        background: isLeft
+          ? 'linear-gradient(to left, rgba(0,0,0,0.07), transparent)'
+          : 'linear-gradient(to right, rgba(0,0,0,0.07), transparent)',
+      }} />
+
+      {/* Red margin rule */}
+      <div style={{
+        position: 'absolute',
+        left: 44,
+        top: 0,
+        bottom: 0,
+        width: 1,
+        background: 'rgba(220,80,80,0.18)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* Text content — height capped so it can NEVER overflow the page */}
+      <div style={{
+        position: 'relative',
+        zIndex: 1,
+        height: 'calc(100% - 92px)',  // 48px top pad + 44px bottom pad
+        overflow: 'hidden',
+      }}>
         {paragraphs.map((para, i) => {
-          const isFirst = i === 0;
-          const firstLetter = isFirst ? para[0] : '';
-          const rest = isFirst ? para.slice(1) : para;
+          const isFirstPara = i === 0 && showDropCap;
+          const firstLetter = isFirstPara ? para[0] : '';
+          const rest = isFirstPara ? para.slice(1) : para;
 
           return (
             <p key={i} style={{
-              fontFamily: 'Georgia, serif', // ONLY ALLOWED SERIF ON SITE
-              fontSize: 14,
-              lineHeight: 1.82,
-              color: '#1a1a1a',
-              marginBottom: '0.9em',
+              fontFamily: 'Georgia, serif',
+              fontSize: FONT_SIZE,
+              lineHeight: LINE_H / FONT_SIZE,
+              color: '#1c1c1c',
+              marginBottom: 0,
+              marginTop: 0,
               textAlign: 'justify',
-              textIndent: isFirst ? 0 : '1.4em',
+              textIndent: isFirstPara ? 0 : '1.3em',
               position: 'relative',
             }}>
-              {isFirst && (
+              {isFirstPara && (
                 <span style={{
                   float: 'left',
                   fontFamily: 'DM Sans, sans-serif',
                   fontWeight: 900,
-                  fontSize: 52,
-                  lineHeight: 0.82,
-                  marginRight: 6,
-                  marginTop: 6,
-                  color: '#E3000F',
+                  fontSize: 56,
+                  lineHeight: 0.8,
+                  marginRight: 7,
+                  marginTop: 7,
+                  color: '#C8000D',
                   textTransform: 'uppercase',
                 }}>
                   {firstLetter}
@@ -351,13 +467,13 @@ const BodyPage: React.FC<{ page: ParsedPage; pageNum: number; isLeft: boolean }>
       {/* Page number */}
       <span style={{
         position: 'absolute',
-        bottom: 18,
+        bottom: 16,
         [isLeft ? 'left' : 'right']: 28,
         fontFamily: 'DM Sans, sans-serif',
         fontWeight: 700,
         fontSize: 9,
         letterSpacing: '0.2em',
-        color: 'rgba(0,0,0,0.25)',
+        color: 'rgba(0,0,0,0.22)',
       }}>
         {pageNum}
       </span>
@@ -365,8 +481,131 @@ const BodyPage: React.FC<{ page: ParsedPage; pageNum: number; isLeft: boolean }>
   );
 };
 
+
+/* ══════════════════════════════════════════════════
+   DOM MEASUREMENT PAGINATOR
+   Renders paragraphs into a hidden div sized exactly
+   like a real page, cuts when scrollHeight overflows.
+   Zero guessing — the browser decides what fits.
+══════════════════════════════════════════════════ */
+function paginateWithMeasurement(
+  blocks: TextBlock[],
+  textW: number,
+  textH: number,
+): ParsedPage[] {
+  const pages: ParsedPage[] = [];
+  let chapterStartPending = false;
+
+  // Hidden measuring node — same styles as BodyPage text area
+  const m = document.createElement('div');
+  Object.assign(m.style, {
+    position: 'fixed', top: '-9999px', left: '-9999px', visibility: 'hidden',
+    pointerEvents: 'none', zIndex: '-1',
+    width: `${textW}px`, height: `${textH}px`,
+    overflow: 'hidden',
+    fontFamily: 'Georgia, serif', fontSize: '15.5px', lineHeight: '1.9',
+    textAlign: 'justify', wordBreak: 'normal', overflowWrap: 'break-word',
+  });
+  document.body.appendChild(m);
+
+  const emitBodyPage = (paras: string[], isStart: boolean) => {
+    pages.push({ type: 'body', content: paras.join('\n\n'), isChapterStart: isStart });
+  };
+
+  const paginateParas = (paras: string[], reservedTopPx = 0) => {
+    // reservedTopPx: space taken by a header (section title etc.)
+    m.innerHTML = '';
+    // Add a spacer for reserved header height so measuring is accurate
+    if (reservedTopPx > 0) {
+      const spacer = document.createElement('div');
+      spacer.style.height = `${reservedTopPx}px`;
+      m.appendChild(spacer);
+    }
+
+    let currentParas: string[] = [];
+    let isFirstPage = true;
+
+    for (const para of paras) {
+      const p = document.createElement('p');
+      Object.assign(p.style, { margin: '0', padding: '0', textIndent: '1.3em' });
+      p.textContent = para;
+      m.appendChild(p);
+
+      if (m.scrollHeight > m.clientHeight) {
+        // Paragraph overflows — emit current page, start fresh
+        m.removeChild(p);
+        if (currentParas.length > 0) {
+          emitBodyPage(currentParas, chapterStartPending && isFirstPage);
+          if (chapterStartPending && isFirstPage) chapterStartPending = false;
+          isFirstPage = false;
+        }
+        // New page: reset measurer, no reserved space
+        m.innerHTML = '';
+        p.style.textIndent = '1.3em';
+        m.appendChild(p);
+        currentParas = [para];
+      } else {
+        currentParas.push(para);
+      }
+    }
+
+    if (currentParas.length > 0) {
+      emitBodyPage(currentParas, chapterStartPending && isFirstPage);
+      if (chapterStartPending && isFirstPage) chapterStartPending = false;
+    }
+  };
+
+  for (const block of blocks) {
+    if (block.kind === 'chapter') {
+      pages.push({ type: 'chapter-opener', chapterNumber: block.chapterNumber, chapterTitle: block.chapterTitle });
+      chapterStartPending = true;
+    } else if (block.kind === 'pullquote') {
+      pages.push({ type: 'pull-quote', quote: block.quote });
+    } else if (block.kind === 'section') {
+      // Sections: first page has title header (~60px), rest are plain
+      let firstPage = true;
+      const headerH = 60; // approximate height of section title + rule
+
+      m.innerHTML = '';
+      const spacer = document.createElement('div');
+      spacer.style.height = `${headerH}px`;
+      m.appendChild(spacer);
+
+      let currentParas: string[] = [];
+
+      for (const para of block.paragraphs) {
+        const p = document.createElement('p');
+        Object.assign(p.style, { margin: '0', padding: '0', textIndent: '1.3em' });
+        p.textContent = para;
+        m.appendChild(p);
+
+        if (m.scrollHeight > m.clientHeight) {
+          m.removeChild(p);
+          pages.push({ type: 'section', sectionTitle: firstPage ? block.sectionTitle : undefined, content: currentParas.join('\n\n') });
+          firstPage = false;
+          m.innerHTML = ''; // no spacer for continuation pages
+          p.style.textIndent = '1.3em';
+          m.appendChild(p);
+          currentParas = [para];
+        } else {
+          currentParas.push(para);
+        }
+      }
+
+      if (currentParas.length > 0) {
+        pages.push({ type: 'section', sectionTitle: firstPage ? block.sectionTitle : undefined, content: currentParas.join('\n\n') });
+      }
+    } else if (block.kind === 'body') {
+      paginateParas(block.paragraphs);
+    }
+  }
+
+  document.body.removeChild(m);
+  return pages;
+}
+
 /* ══════════════════════════════
-   FULL SCREEN READER (Untouched)
+   FULL SCREEN READER
 ══════════════════════════════ */
 const FullScreenReader: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -376,39 +615,64 @@ const FullScreenReader: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const initialized = useRef(false);
 
   useEffect(() => {
-    (async () => {
-      const mod = await import('@/data/book-text');
-      setPages(parseAndPaginate(mod.bookText));
-    })();
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
   }, []);
 
+  // Load blocks + paginate using real DOM measurement
   useEffect(() => {
-    if (!pages.length || !containerRef.current || initialized.current) return;
+    if (initialized.current) return;
     initialized.current = true;
 
     const isMobile = window.innerWidth < 768;
     const h = isMobile
       ? Math.min(window.innerHeight - 140, 520)
       : Math.min(window.innerHeight - 120, 660);
-    const w = isMobile ? Math.round(h / 1.45) : Math.round(h / 1.45);
+    const w = Math.round(h / 1.45);
+    // Text area inside the page (subtract padding: 36px left + right, 48px top, 44px bottom)
+    const textW = w - 72;
+    const textH = h - 92;
 
-    import('page-flip').then(({ PageFlip }) => {
-      const pf = new PageFlip(containerRef.current!, {
-        width: w, height: h, size: 'fixed',
-        maxShadowOpacity: 0.5,
-        showCover: true,
-        mobileScrollSupport: false,
-        usePortrait: isMobile,
-        drawShadow: true,
-        flippingTime: 900,
-      });
-      pf.loadFromHTML(containerRef.current!.querySelectorAll('.pf-page'));
-      bookRef.current = pf;
-      pf.on('flip', () => setCurrent(pf.getCurrentPageIndex()));
-    }).catch(console.error);
+    (async () => {
+      const mod = await import('@/data/book-text');
+      const blocks = mod.parseBlocks(mod.bookText);
+      const measured = paginateWithMeasurement(blocks, textW, textH);
+      setPages(measured);
+    })();
+  }, []);
+
+  // Init PageFlip once pages are ready and DOM is rendered
+  useEffect(() => {
+    if (!pages.length || !containerRef.current) return;
+
+    const isMobile = window.innerWidth < 768;
+    const h = isMobile
+      ? Math.min(window.innerHeight - 140, 520)
+      : Math.min(window.innerHeight - 120, 660);
+    const w = Math.round(h / 1.45);
+
+    // Tiny delay ensures React has flushed the new .pf-page elements
+    const tid = setTimeout(() => {
+      import('page-flip').then(({ PageFlip }) => {
+        if (!containerRef.current) return;
+        const pf = new PageFlip(containerRef.current, {
+          width: w, height: h, size: 'fixed',
+          maxShadowOpacity: 0.5,
+          showCover: true,
+          mobileScrollSupport: false,
+          usePortrait: isMobile,
+          drawShadow: true,
+          flippingTime: 900,
+        });
+        pf.loadFromHTML(containerRef.current.querySelectorAll('.pf-page'));
+        bookRef.current = pf;
+        pf.on('flip', () => setCurrent(pf.getCurrentPageIndex()));
+      }).catch(console.error);
+    }, 50);
+
+    return () => clearTimeout(tid);
   }, [pages]);
+
 
   const flipNext = useCallback(() => bookRef.current?.flipNext(), []);
   const flipPrev = useCallback(() => bookRef.current?.flipPrev(), []);
@@ -472,6 +736,7 @@ const FullScreenReader: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 const pageNum = i + 1;
                 return (
                   <div key={i} className="pf-page" data-density="soft">
+                    {p.type === 'section' && <SectionPage page={p} isLeft={isLeft} />}
                     {p.type === 'chapter-opener' && <ChapterOpenerPage page={p} isLeft={isLeft} />}
                     {p.type === 'pull-quote' && <PullQuotePage page={p} isLeft={isLeft} />}
                     {p.type === 'body' && <BodyPage page={p} pageNum={pageNum} isLeft={isLeft} />}

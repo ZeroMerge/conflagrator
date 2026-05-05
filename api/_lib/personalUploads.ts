@@ -1,4 +1,4 @@
-import { sql } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 import fs from 'fs';
 import path from 'path';
 
@@ -40,12 +40,29 @@ export type PersonalUploadRecord = {
     approvedBy: string | null;
 };
 
-const hasPostgresConnection = () => Boolean(process.env.POSTGRES_URL || process.env.VERCEL_POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
+const getDatabaseUrl = () => {
+    return process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.NEON_DATABASE_URL;
+};
+
+const hasPostgresConnection = () => Boolean(getDatabaseUrl());
 
 const requireDatabase = () => {
     if (!hasPostgresConnection()) {
-        throw new Error('Vercel Postgres is not configured. Connect the database integration in Vercel.');
+        throw new Error('Neon database is not configured. Set DATABASE_URL or POSTGRES_URL in environment variables.');
     }
+};
+
+let sql: ReturnType<typeof neon> | null = null;
+
+const getSqlClient = () => {
+    if (!sql) {
+        const dbUrl = getDatabaseUrl();
+        if (!dbUrl) {
+            throw new Error('Database URL not found');
+        }
+        sql = neon(dbUrl);
+    }
+    return sql;
 };
 
 const rowToRecord = (row: any): PersonalUploadRecord => ({
@@ -72,8 +89,9 @@ export const upsertPendingUpload = async (input: {
 }) => {
     requireDatabase();
 
-    const result = await sql`
-        INSERT INTO personal_uploads (
+    const sql = getSqlClient();
+    const result = await sql(
+        `INSERT INTO personal_uploads (
             public_id,
             secure_url,
             resource_type,
@@ -82,12 +100,12 @@ export const upsertPendingUpload = async (input: {
             folder,
             status
         ) VALUES (
-            ${input.publicId},
-            ${input.secureUrl},
-            ${input.resourceType},
-            ${input.format ?? null},
-            ${input.bytes ?? null},
-            ${input.folder ?? null},
+            $1,
+            $2,
+            $3,
+            $4,
+            $5,
+            $6,
             'pending'
         )
         ON CONFLICT (public_id)
@@ -101,54 +119,66 @@ export const upsertPendingUpload = async (input: {
             approved_at = NULL,
             approved_by = NULL,
             created_at = NOW()
-        RETURNING *;
-    `;
+        RETURNING *;`,
+        [
+            input.publicId,
+            input.secureUrl,
+            input.resourceType,
+            input.format ?? null,
+            input.bytes ?? null,
+            input.folder ?? null,
+        ]
+    );
 
-    return rowToRecord(result.rows[0]);
+    return rowToRecord(result[0]);
 };
 
 export const listPendingUploads = async () => {
     requireDatabase();
 
-    const result = await sql`
-        SELECT *
+    const sql = getSqlClient();
+    const result = await sql(
+        `SELECT *
         FROM personal_uploads
         WHERE status = 'pending'
-        ORDER BY created_at DESC;
-    `;
+        ORDER BY created_at DESC;`
+    );
 
-    return result.rows.map(rowToRecord);
+    return result.map(rowToRecord);
 };
 
 export const listApprovedUploads = async () => {
     requireDatabase();
 
-    const result = await sql`
-        SELECT *
+    const sql = getSqlClient();
+    const result = await sql(
+        `SELECT *
         FROM personal_uploads
         WHERE status = 'approved'
-        ORDER BY approved_at DESC NULLS LAST, created_at DESC;
-    `;
+        ORDER BY approved_at DESC NULLS LAST, created_at DESC;`
+    );
 
-    return result.rows.map(rowToRecord);
+    return result.map(rowToRecord);
 };
 
 export const approveUpload = async (publicId: string, approvedBy: string = 'admin') => {
     requireDatabase();
 
-    const result = await sql`
-        UPDATE personal_uploads
+    const sql = getSqlClient();
+    const result = await sql(
+        `UPDATE personal_uploads
         SET
             status = 'approved',
             approved_at = NOW(),
-            approved_by = ${approvedBy}
-        WHERE public_id = ${publicId}
-        RETURNING *;
-    `;
+            approved_by = $2
+        WHERE public_id = $1
+        RETURNING *;`,
+        [publicId, approvedBy]
+    );
 
-    if (result.rows.length === 0) {
+    if (!result || result.length === 0) {
         throw new Error('Upload not found');
     }
 
-    return rowToRecord(result.rows[0]);
+    return rowToRecord(result[0]);
 };

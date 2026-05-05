@@ -8,10 +8,11 @@ import CTAButton from '@/components/CTAButton';
 import ImageCarousel from '@/components/ImageCarousel';
 import { useAgeCounter } from '@/hooks/useAgeCounter';
 import { usePersonalGallery } from '@/hooks/usePersonalGallery';
+import * as THREE from 'three';
 import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
 
 
-gsap.registerPlugin(ScrollTrigger);
+// gsap.registerPlugin(ScrollTrigger);
 
 /* ── Divider helpers ── */
 const MacroSpace = () => <div style={{ height: 'clamp(80px,18vh,180px)', background: '#050505' }} />;
@@ -26,176 +27,177 @@ const EditorialLine = () => (
   </div>
 );
 
-// /* ══════════════════════════════
-//    HERO
-// ══════════════════════════════ */
-// const Hero: React.FC = () => {
-//   const age = useAgeCounter();
-//   const imgRef = useRef<HTMLDivElement>(null);
-//   const wordsRef = useRef<HTMLDivElement>(null);
+// // // /* ══════════════════════════════
+// // //    HERO
+// // // ══════════════════════════════ */
+// // // const Hero: React.FC = () => {
+// // //   const age = useAgeCounter();
+// // //   const imgRef = useRef<HTMLDivElement>(null);
+// // //   const wordsRef = useRef<HTMLDivElement>(null);
 
-//   useEffect(() => {
-//     const ctx = gsap.context(() => {
-//       if (imgRef.current) {
-//         gsap.to(imgRef.current, {
-//           yPercent: 15, ease: 'none',
-//           scrollTrigger: { trigger: imgRef.current, start: 'top top', end: 'bottom top', scrub: true },
-//         });
-//       }
-//       const words = wordsRef.current?.querySelectorAll('.hw');
-//       if (words) {
-//         gsap.fromTo(words,
-//           { opacity: 0, x: -20 },
-//           { opacity: 1, x: 0, duration: 1, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
-//         );
-//       }
-//     });
-//     return () => ctx.revert();
-//   }, []);
+// // //   useEffect(() => {
+// // //     const ctx = gsap.context(() => {
+// // //       if (imgRef.current) {
+// // //         gsap.to(imgRef.current, {
+// // //           yPercent: 15, ease: 'none',
+// // //           scrollTrigger: { trigger: imgRef.current, start: 'top top', end: 'bottom top', scrub: true },
+// // //         });
+// // //       }
+// // //       const words = wordsRef.current?.querySelectorAll('.hw');
+// // //       if (words) {
+// // //         gsap.fromTo(words,
+// // //           { opacity: 0, x: -20 },
+// // //           { opacity: 1, x: 0, duration: 1, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
+// // //         );
+// // //       }
+// // //     });
+// // //     return () => ctx.revert();
+// // //   }, []);
 
-//   return (
-//     <section className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center">
-//       <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform">
-//         <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-50" />
-//         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
-//       </div>
+// // //   return (
+// // //     <section className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center">
+// // //       <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform">
+// // //         <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-50" />
+// // //         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
+// // //       </div>
 
-//       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
-//         <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
-//           <div className="hw"><span className="font-dm font-black text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
-//           <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
-//           <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
-//           <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
-//           <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
-//           <div className="hw"><span className="font-dm font-black text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
-//         </div>
-//       </div>
+// // //       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
+// // //         <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
+// // //           <div className="hw"><span className="font-dm font-black text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
+// // //           <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
+// // //           <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
+// // //           <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
+// // //           <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
+// // //           <div className="hw"><span className="font-dm font-black text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
+// // //         </div>
+// // //       </div>
 
-//       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
-//         <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
-//           {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
-//         </p>
-//       </div>
-//     </section>
-//   );
-// };
+// // //       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
+// // //         <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
+// // //           {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
+// // //         </p>
+// // //       </div>
+// // //     </section>
+// // //   );
+// // // };
 
 
-gsap.registerPlugin(ScrollTrigger);
+// // gsap.registerPlugin(ScrollTrigger);
 
-/* ══════════════════════════════
-   HERO (With Kinetic Typography)
-══════════════════════════════ */
-const Hero: React.FC = () => {
-  const age = useAgeCounter();
-  const imgRef = useRef<HTMLDivElement>(null);
-  const wordsRef = useRef<HTMLDivElement>(null);
-  const sectionRef = useRef<HTMLElement>(null);
+// // /* ══════════════════════════════
+// //    HERO (With Kinetic Typography)
+// // ══════════════════════════════ */
+// // const Hero: React.FC = () => {
+// //   const age = useAgeCounter();
+// //   const imgRef = useRef<HTMLDivElement>(null);
+// //   const wordsRef = useRef<HTMLDivElement>(null);
+// //   const sectionRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // 1. Portrait Parallax (Existing)
-      if (imgRef.current) {
-        gsap.to(imgRef.current, {
-          yPercent: 15, ease: 'none',
-          scrollTrigger: { trigger: imgRef.current, start: 'top top', end: 'bottom top', scrub: true },
-        });
-      }
+// //   useEffect(() => {
+// //     const ctx = gsap.context(() => {
+// //       // 1. Portrait Parallax (Existing)
+// //       if (imgRef.current) {
+// //         gsap.to(imgRef.current, {
+// //           yPercent: 15, ease: 'none',
+// //           scrollTrigger: { trigger: imgRef.current, start: 'top top', end: 'bottom top', scrub: true },
+// //         });
+// //       }
 
-      // Target all the spans we want to animate
-      const wordElements = wordsRef.current?.querySelectorAll('.kinetic-word');
+// //       // Target all the spans we want to animate
+// //       const wordElements = wordsRef.current?.querySelectorAll('.kinetic-word');
 
-      if (wordElements) {
-        // 2. Initial Intro Reveal (Start thin, animate in)
-        gsap.fromTo(wordElements,
-          { opacity: 0, x: -30, fontWeight: 100 },
-          { opacity: 1, x: 0, fontWeight: 300, duration: 1.2, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
-        );
+// //       if (wordElements) {
+// //         // 2. Initial Intro Reveal (Start thin, animate in)
+// //         gsap.fromTo(wordElements,
+// //           { opacity: 0, x: -30, fontWeight: 100 },
+// //           { opacity: 1, x: 0, fontWeight: 300, duration: 1.2, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
+// //         );
 
-        // 3. The Kinetic Morphing Logic
-        const handleMouseMove = (e: MouseEvent) => {
-          const { clientY, clientX } = e;
+// //         // 3. The Kinetic Morphing Logic
+// //         const handleMouseMove = (e: MouseEvent) => {
+// //           const { clientY, clientX } = e;
 
-          wordElements.forEach((word) => {
-            const rect = word.getBoundingClientRect();
+// //           wordElements.forEach((word) => {
+// //             const rect = word.getBoundingClientRect();
 
-            // Find the center point of each specific word
-            const wordCenterY = rect.top + rect.height / 2;
-            const wordCenterX = rect.left + rect.width / 2;
+// //             // Find the center point of each specific word
+// //             const wordCenterY = rect.top + rect.height / 2;
+// //             const wordCenterX = rect.left + rect.width / 2;
 
-            // Calculate the distance from the cursor to the word's center
-            const distX = clientX - wordCenterX;
-            const distY = clientY - wordCenterY;
-            const distance = Math.sqrt(distX * distX + distY * distY);
+// //             // Calculate the distance from the cursor to the word's center
+// //             const distX = clientX - wordCenterX;
+// //             const distY = clientY - wordCenterY;
+// //             const distance = Math.sqrt(distX * distX + distY * distY);
 
-            // Map the distance to a font weight. 
-            // 0px away = 900 weight. 600px away = 100 weight.
-            let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
-            weight = gsap.utils.clamp(100, 900, weight);
+// //             // Map the distance to a font weight. 
+// //             // 0px away = 900 weight. 600px away = 100 weight.
+// //             let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
+// //             weight = gsap.utils.clamp(100, 900, weight);
 
-            // Animate the weight smoothly
-            gsap.to(word, {
-              fontWeight: weight,
-              duration: 0.4,
-              ease: 'power2.out',
-            });
-          });
-        };
+// //             // Animate the weight smoothly
+// //             gsap.to(word, {
+// //               fontWeight: weight,
+// //               duration: 0.4,
+// //               ease: 'power2.out',
+// //             });
+// //           });
+// //         };
 
-        const section = sectionRef.current;
-        if (section) {
-          section.addEventListener('mousemove', handleMouseMove);
+// //         const section = sectionRef.current;
+// //         if (section) {
+// //           section.addEventListener('mousemove', handleMouseMove);
 
-          // When the mouse leaves the hero section, reset all text back to a sleek, thin weight
-          section.addEventListener('mouseleave', () => {
-            gsap.to(wordElements, { fontWeight: 200, duration: 0.8, ease: 'power2.out' });
-          });
-        }
+// //           // When the mouse leaves the hero section, reset all text back to a sleek, thin weight
+// //           section.addEventListener('mouseleave', () => {
+// //             gsap.to(wordElements, { fontWeight: 200, duration: 0.8, ease: 'power2.out' });
+// //           });
+// //         }
 
-        return () => {
-          if (section) {
-            section.removeEventListener('mousemove', handleMouseMove);
-            section.removeEventListener('mouseleave', () => { });
-          }
-        };
-      }
-    });
+// //         return () => {
+// //           if (section) {
+// //             section.removeEventListener('mousemove', handleMouseMove);
+// //             section.removeEventListener('mouseleave', () => { });
+// //           }
+// //         };
+// //       }
+// //     });
 
-    return () => ctx.revert();
-  }, []);
+// //     return () => ctx.revert();
+// //   }, []);
 
-  return (
-    <section ref={sectionRef} className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center cursor-crosshair">
+// //   return (
+// //     <section ref={sectionRef} className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center cursor-crosshair">
 
-      {/* Background Portrait */}
-      <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform pointer-events-none">
-        {/* Added mix-blend-luminosity and lowered opacity slightly for a more editorial background feel */}
-        <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-30 mix-blend-luminosity" />
-        <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
-      </div>
+// //       {/* Background Portrait */}
+// //       <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform pointer-events-none">
+// //         {/* Added mix-blend-luminosity and lowered opacity slightly for a more editorial background feel */}
+// //         <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-30 mix-blend-luminosity" />
+// //         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
+// //       </div>
 
-      <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
-        <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
-          {/* Note: I replaced 'font-black' with the 'kinetic-word' class target */}
-          <div className="hw"><span className="kinetic-word font-dm text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
-          <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
-          <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
-          <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
-          <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
-          <div className="hw"><span className="kinetic-word font-dm text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
-        </div>
-      </div>
+// //       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
+// //         <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
+// //           {/* Note: I replaced 'font-black' with the 'kinetic-word' class target */}
+// //           <div className="hw"><span className="kinetic-word font-dm text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
+// //           <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
+// //           <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
+// //           <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
+// //           <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
+// //           <div className="hw"><span className="kinetic-word font-dm text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
+// //         </div>
+// //       </div>
 
-      <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10 pointer-events-none">
-        {/* Keeping the static font-black here for contrast against the morphing text */}
-        <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
-          {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
-        </p>
-      </div>
+// //       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10 pointer-events-none">
+// //         {/* Keeping the static font-black here for contrast against the morphing text */}
+// //         <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
+// //           {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
+// //         </p>
+// //       </div>
 
-    </section>
-  );
-};
+// //     </section>
+// //   );
+// // };
+
 
 
 /* ══════════════════════════════
@@ -836,7 +838,7 @@ const Home: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={(e) => {
+                onClick={() => {
                   const consentCheck = document.getElementById('consent-check') as HTMLInputElement;
                   if (!consentCheck?.checked) {
                     setToast('Please check the consent box to proceed.');

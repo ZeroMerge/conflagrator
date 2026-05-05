@@ -8,13 +8,13 @@ export interface BookPage {
 export const bookText = `Perfect Years
 By Salami Oreoluwa (The Conflagrator)
 
-DEDICATION
+[SECTION:DEDICATION]
 
 I dedicate this book to Almighty God. Being the first book of mine and the God grace has given me to journey through the first phase of life of my academic pursuit.
 
 To my wonderful family. My parent and my sisters, thanks for being my confidant.
 
-/n ACKNOWLEDGMENT
+[SECTION:ACKNOWLEDGMENT]
 
 The Almighty and most powerful God is highly acknowledged for giving me the vision, inspiration and sound mind to put up this book. All glory, laud and honor be to God.
 
@@ -515,93 +515,78 @@ ABOUT THE AUTHOR
 I am Salami Oreoluwa, The Conflagrator. I love to set people on fire in doing God's will to live an outstanding life. I am the head boy of Beulah Academy. My ultimate goal is to live a life worthy of emulation.
 `;
 
-export const bookPages = parseAndPaginate(bookText);
 
+/** Raw structural block — no pagination, just parsed content */
+export type TextBlock =
+  | { kind: 'section'; sectionTitle: string; paragraphs: string[] }
+  | { kind: 'chapter'; chapterNumber: number; chapterTitle: string }
+  | { kind: 'pullquote'; quote: string }
+  | { kind: 'body'; paragraphs: string[] };
 
 export interface ParsedPage {
-  type: 'cover' | 'chapter-opener' | 'body' | 'pull-quote' | 'back-cover';
+  type: 'cover' | 'section' | 'chapter-opener' | 'body' | 'pull-quote' | 'back-cover';
   chapterNumber?: number;
   chapterTitle?: string;
+  sectionTitle?: string;
   content?: string;
   quote?: string;
+  isChapterStart?: boolean;
 }
 
-export function parseAndPaginate(text: string, wordsPerPage: number = 195): ParsedPage[] {
-  const pages: ParsedPage[] = [];
+/**
+ * Parses book text into raw structural blocks with NO pagination.
+ * Book.tsx uses DOM measurement to split paragraphs into pages.
+ */
+export function parseBlocks(text: string): TextBlock[] {
+  const blocks: TextBlock[] = [];
   const lines = text.split('\n');
+  let currentSectionTitle: string | null = null;
+  let sectionParas: string[] = [];
+  let bodyParas: string[] = [];
 
-  let bodyBuffer: string[] = [];
-  let wordCount = 0;
-
-  const flushBuffer = () => {
-    if (bodyBuffer.length === 0) return;
-    const content = bodyBuffer.join('\n').trim();
-    if (content) pages.push({ type: 'body', content });
-    bodyBuffer = [];
-    wordCount = 0;
+  const flushBody = () => {
+    if (bodyParas.length > 0) {
+      blocks.push({ kind: 'body', paragraphs: [...bodyParas] });
+      bodyParas = [];
+    }
+  };
+  const flushSection = () => {
+    if (currentSectionTitle !== null) {
+      blocks.push({ kind: 'section', sectionTitle: currentSectionTitle, paragraphs: [...sectionParas] });
+      currentSectionTitle = null;
+      sectionParas = [];
+    }
   };
 
   for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) {
-      if (bodyBuffer.length) bodyBuffer.push('');
+    const t = line.trim();
+    if (!t) continue;
+
+    const sM = t.match(/^\[SECTION:(.+)\]$/);
+    if (sM) { flushBody(); flushSection(); currentSectionTitle = sM[1]; continue; }
+
+    const cM = t.match(/^\[CHAPTER:(\d+):(.+)\]$/);
+    if (cM) {
+      flushBody(); flushSection();
+      blocks.push({ kind: 'chapter', chapterNumber: parseInt(cM[1]), chapterTitle: cM[2] });
       continue;
     }
 
-    // Chapter marker
-    const chapterMatch = trimmed.match(/^\[CHAPTER:(\d+):(.+)\]$/);
-    if (chapterMatch) {
-      flushBuffer();
-      pages.push({
-        type: 'chapter-opener',
-        chapterNumber: parseInt(chapterMatch[1]),
-        chapterTitle: chapterMatch[2],
-      });
-      continue;
-    }
+    const qM = t.match(/^\[PULLQUOTE:(.+)\]$/);
+    if (qM) { flushBody(); flushSection(); blocks.push({ kind: 'pullquote', quote: qM[1] }); continue; }
 
-    // Pull quote marker
-    const quoteMatch = trimmed.match(/^\[PULLQUOTE:(.+)\]$/);
-    if (quoteMatch) {
-      flushBuffer();
-      pages.push({ type: 'pull-quote', quote: quoteMatch[1] });
-      continue;
-    }
+    if (t === 'Perfect Years' || t.startsWith('By ') || t === 'ABOUT THE AUTHOR') continue;
 
-    // Skip title lines
-    if (trimmed === 'Perfect Years' || trimmed.startsWith('By ')) continue;
-
-    // Regular body text — accumulate and paginate
-    const words = trimmed.split(/\s+/);
-    bodyBuffer.push(trimmed);
-    wordCount += words.length;
-
-    if (wordCount >= wordsPerPage) {
-      // Try to break at sentence boundary
-      const fullText = bodyBuffer.join(' ');
-      const sentences = fullText.match(/[^.!?]+[.!?]+/g) || [fullText];
-      let chunk = '';
-      let remaining = '';
-      let built = 0;
-
-      for (const s of sentences) {
-        const w = s.split(/\s+/).length;
-        if (built + w <= wordsPerPage + 30) {
-          chunk += s;
-          built += w;
-        } else {
-          remaining += s;
-        }
-      }
-
-      if (chunk.trim()) pages.push({ type: 'body', content: chunk.trim() });
-      bodyBuffer = remaining.trim() ? [remaining.trim()] : [];
-      wordCount = bodyBuffer.join(' ').split(/\s+/).length;
-    }
+    if (currentSectionTitle !== null) { sectionParas.push(t); }
+    else { bodyParas.push(t); }
   }
 
-  flushBuffer();
-  return pages;
+  flushBody();
+  flushSection();
+  return blocks;
 }
 
-// To add more chapters — just add [CHAPTER:8:Your Title] in bookText above and a matching entry in the CHAPTERS array in Book.tsx.
+// Kept so existing imports don't break — now a no-op
+export function parseAndPaginate(_text: string): ParsedPage[] { return []; }
+
+// To add more chapters: [CHAPTER:8:Your Title] in bookText + entry in CHAPTERS array in Book.tsx.
