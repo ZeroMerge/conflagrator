@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { X, ChevronRight, ChevronLeft } from 'lucide-react';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import { X, ChevronRight, ChevronLeft, Flame, Users, Lightbulb, Gem, Shield, Globe, Eye } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
 import { parseAndPaginate } from '@/data/book-text';
 import type { ParsedPage } from '@/data/book-text';
@@ -8,166 +9,165 @@ import type { ParsedPage } from '@/data/book-text';
    CHAPTERS META 
 ══════════════════════════════ */
 const CHAPTERS = [
-  { number: 1, title: 'The Weight of Expectation', tease: 'On carrying dreams that were never yours to carry.' },
-  { number: 2, title: 'The Fire You Carry', tease: 'What excites you when no one is watching?' },
-  { number: 3, title: 'Perfect Is Not the Goal', tease: 'An invitation to intentional years instead.' },
-  { number: 4, title: 'Built to Build', tease: 'Why creation is the only thing that changes the world.' },
-  { number: 5, title: 'The Long Road', tease: 'Everything I know at seventeen.' },
+  { number: 1, title: 'Rough Year', tease: 'The early years that shape us, even before we know ourselves.' },
+  { number: 2, title: 'First Year: Your Friends', tease: 'The company you keep is the person you are becoming.' },
+  { number: 3, title: 'Second Year: Your Thoughts', tease: 'You are who your thoughts say you are.' },
+  { number: 4, title: 'Third Year: Your Failure', tease: 'Your failure is raw gold — it just needs to be refined.' },
+  { number: 5, title: 'Fourth Year: Your Responsibility', tease: 'The hardest thing to take responsibility for is yourself.' },
+  { number: 6, title: 'Fifth Year: Your World', tease: 'You own a territory. Beautify and control it.' },
+  { number: 7, title: 'Sixth Year: Your Vision', tease: 'When your eye is malfunctioning, we call it a vision defect.' },
 ];
 
+/* Chapter number → Lucide icon component */
+const CHAPTER_ICONS: Record<number, React.FC<React.SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>> = {
+  1: Flame,
+  2: Users,
+  3: Lightbulb,
+  4: Gem,
+  5: Shield,
+  6: Globe,
+  7: Eye,
+};
+
 /* ══════════════════════════════
-   REALISTIC 3-D BOOK COVER 
+   REALISTIC 3-D BOOK COVER (With Hover Smoke & Embers)
 ══════════════════════════════ */
 const BookCover: React.FC<{ onRead: () => void }> = ({ onRead }) => {
-  const [hovered, setHovered] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  // Slightly stronger rest angle for the Book Page presentation
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [20, -10]), { damping: 30, stiffness: 50 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-35, 5]), { damping: 30, stiffness: 50 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { innerWidth, innerHeight } = window;
+      mouseX.set(e.clientX / innerWidth - 0.5);
+      mouseY.set(e.clientY / innerHeight - 0.5);
+    };
+
+    const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta && e.gamma) {
+        const x = Math.min(Math.max(e.gamma / 40, -0.5), 0.5);
+        const y = Math.min(Math.max((e.beta - 45) / 40, -0.5), 0.5);
+        mouseX.set(x);
+        mouseY.set(y);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
+    };
+  }, [mouseX, mouseY]);
+
+  const depth = 48; // Book thickness
 
   return (
     <div
-      className="flex justify-center"
-      style={{ perspective: '1200px', perspectiveOrigin: '50% 45%' }}
+      className="relative flex justify-center items-center w-full max-w-[340px] h-[450px] [perspective:1200px] cursor-pointer"
+      onClick={onRead}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      title="Click to Read"
     >
-      <div
-        onClick={onRead}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className="relative cursor-pointer select-none"
-        style={{
-          width: 240,
-          height: 360,
-          transformStyle: 'preserve-3d',
-          transform: hovered
-            ? 'rotateY(-28deg) rotateX(4deg) translateY(-10px)'
-            : 'rotateY(-18deg) rotateX(2deg)',
-          transition: 'transform 0.7s cubic-bezier(0.34,1.56,0.64,1)',
-          filter: hovered ? 'drop-shadow(28px 28px 40px rgba(0,0,0,0.95))' : 'drop-shadow(18px 18px 30px rgba(0,0,0,0.85))',
-        }}
+      {/* THE SMOKE & FIRE AURA (Activates on Hover) */}
+      <motion.div
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[240px] h-[360px] pointer-events-none z-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isHovered ? 1 : 0 }}
+        transition={{ duration: 0.6, ease: "easeInOut" }}
       >
-        {/* FRONT FACE */}
-        <div
-          style={{
-            position: 'absolute', inset: 0,
-            backfaceVisibility: 'hidden',
-            background: 'linear-gradient(160deg, #1a1a1a 0%, #0d0d0d 60%, #111 100%)',
-            border: '1px solid rgba(255,255,255,0.07)',
-            overflow: 'hidden',
-          }}
-        >
-          {/* Cloth texture overlay */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: `repeating-linear-gradient(
-              0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px
-            ), repeating-linear-gradient(
-              90deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px
-            )`,
-            pointerEvents: 'none',
-          }} />
-          {/* Foil sheen on hover */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            background: hovered
-              ? 'linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 50%, rgba(255,255,255,0.02) 100%)'
-              : 'transparent',
-            transition: 'background 0.4s',
-            pointerEvents: 'none',
-          }} />
-          {/* Book image */}
-          <img
-            src="/images/book-cover-perfect-years.jpg"
-            alt="Perfect Years"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', mixBlendMode: 'luminosity', opacity: 0.95 }}
+        {/* Core Intense Red Glow */}
+        <div className="absolute inset-0 bg-conflagrator-red/30 blur-[60px] rounded-full" />
+
+        {/* Rising Smoke Plume 1 */}
+        <motion.div
+          className="absolute -top-10 -left-10 w-32 h-32 bg-[#ff2a2a]/20 blur-[40px] rounded-full"
+          animate={isHovered ? { y: [-20, -100], x: [-10, 30], scale: [1, 2], opacity: [0, 0.6, 0] } : { opacity: 0 }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeOut' }}
+        />
+
+        {/* Rising Smoke Plume 2 */}
+        <motion.div
+          className="absolute top-20 -right-12 w-40 h-40 bg-conflagrator-red/20 blur-[50px] rounded-full"
+          animate={isHovered ? { y: [0, -120], x: [10, -40], scale: [1, 2.5], opacity: [0, 0.5, 0] } : { opacity: 0 }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
+        />
+
+        {/* Hover Embers */}
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute bottom-10 left-1/2 w-1.5 h-1.5 bg-[#ff5555] rounded-full blur-[1px]"
+            initial={{ x: (i - 3) * 20, y: 0, opacity: 0 }}
+            animate={isHovered ? {
+              y: -200 - Math.random() * 100,
+              x: (i - 3) * 20 + (Math.random() * 60 - 30),
+              opacity: [0, 1, 0],
+              scale: [1, Math.random() * 1.5 + 0.5, 0]
+            } : { opacity: 0 }}
+            transition={{
+              duration: 2 + Math.random() * 2,
+              repeat: Infinity,
+              delay: Math.random() * 1.5,
+              ease: "easeOut"
+            }}
           />
-          {/* Spine hinge shadow */}
-          <div style={{
-            position: 'absolute', left: 0, top: 0, bottom: 0, width: 18,
-            background: 'linear-gradient(to right, rgba(0,0,0,0.6) 0%, transparent 100%)',
-            pointerEvents: 'none',
-          }} />
-          {/* Bottom edge darkening */}
-          <div style={{
-            position: 'absolute', left: 0, right: 0, bottom: 0, height: 24,
-            background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.5))',
-          }} />
+        ))}
+      </motion.div>
+
+      {/* THE 3D BOOK (Added relative z-10 to stay above smoke) */}
+      <motion.div
+        className="relative z-10 w-[240px] h-[360px]"
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        animate={{ y: [-10, 10, -10] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {/* FRONT COVER */}
+        <div className="absolute inset-0 scale-[1.03] bg-[#0d0d0d] border border-white/10 shadow-2xl overflow-hidden" style={{ transform: `translateZ(${depth / 2}px)` }}>
+          <img src="/images/book-cover-perfect-years.jpg" alt="Perfect Years" className="w-full h-full object-cover mix-blend-lighten opacity-90" />
+          <div className="absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-r from-black/80 to-transparent pointer-events-none" />
         </div>
+
+        {/* BACK COVER */}
+        <div className="absolute inset-0 scale-[1.03] bg-[#080808] border border-white/10" style={{ transform: `rotateY(180deg) translateZ(${depth / 2}px)` }} />
 
         {/* SPINE */}
-        <div style={{
-          position: 'absolute',
-          top: 0, bottom: 0,
-          left: 0,
-          width: 28,
-          transformOrigin: 'left center',
-          transform: 'rotateY(90deg) translateZ(-14px)',
-          backfaceVisibility: 'hidden',
-          background: 'linear-gradient(to right, #0a0a0a, #181818)',
-          borderLeft: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          overflow: 'hidden',
-        }}>
-          {/* Spine cloth texture */}
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px)',
-          }} />
-          <span style={{
-            writingMode: 'vertical-rl',
-            transform: 'rotate(180deg)',
-            fontFamily: 'DM Sans, sans-serif',
-            fontWeight: 800,
-            fontSize: 10,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.35)',
-            whiteSpace: 'nowrap',
-          }}>
-            PERFECT YEARS · SALAMI OREOLUWA
-          </span>
+        <div className="absolute top-0 bottom-0 left-0 w-[48px] scale-y-[1.03] bg-[#050505] border-l border-white/10 flex items-center justify-center overflow-hidden" style={{ transform: `translateX(-24px) rotateY(-90deg)` }}>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-transparent to-black/90" />
         </div>
 
-        {/* BACK FACE */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          transform: 'rotateY(180deg)',
-          backfaceVisibility: 'hidden',
-          background: 'linear-gradient(160deg, #111 0%, #0a0a0a 100%)',
-          border: '1px solid rgba(255,255,255,0.05)',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'flex-end',
-          padding: 20,
-        }}>
-          <div style={{
-            backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.015) 2px, rgba(255,255,255,0.015) 4px)',
-            position: 'absolute', inset: 0,
-          }} />
-          <p style={{ fontFamily: 'DM Sans', fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.15em', textTransform: 'uppercase', position: 'relative', zIndex: 1 }}>
-            Perfect Years
-          </p>
+        {/* PAGES (Right) */}
+        <div className="absolute top-0 bottom-0 right-0 w-[48px] bg-[#cca35e] overflow-hidden" style={{ transform: `translateX(24px) rotateY(90deg)` }}>
+          <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, #000 2px, #000 3px)' }} />
+          <div className="absolute inset-0 shadow-[inset_4px_0_12px_rgba(0,0,0,0.6)]" />
         </div>
 
-        {/* PAGE BLOCK — right edge showing pages */}
-        <div style={{
-          position: 'absolute',
-          top: 2, bottom: 2,
-          right: -8,
-          width: 8,
-          transformOrigin: 'left center',
-          background: 'repeating-linear-gradient(to bottom, #e8e4dc, #e8e4dc 1px, #d4cfc6 1px, #d4cfc6 2px)',
-          boxShadow: 'inset -2px 0 4px rgba(0,0,0,0.3)',
-        }} />
+        {/* PAGES (Top) */}
+        <div className="absolute top-0 left-0 right-0 h-[48px] bg-[#cca35e] overflow-hidden" style={{ transform: `translateY(-24px) rotateX(90deg)` }}>
+          <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 3px)' }} />
+          <div className="absolute inset-0 shadow-[inset_0_4px_12px_rgba(0,0,0,0.6)]" />
+        </div>
 
-        {/* TOP EDGE */}
-        <div style={{
-          position: 'absolute',
-          top: -4, left: 2, right: 0,
-          height: 4,
-          transformOrigin: 'bottom center',
-          transform: 'rotateX(90deg)',
-          background: 'repeating-linear-gradient(to right, #e8e4dc, #e8e4dc 1px, #d0cbc2 1px, #d0cbc2 2px)',
-        }} />
-      </div>
+        {/* PAGES (Bottom) */}
+        <div className="absolute bottom-0 left-0 right-0 h-[48px] bg-[#cca35e] overflow-hidden" style={{ transform: `translateY(24px) rotateX(-90deg)` }}>
+          <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 3px)' }} />
+          <div className="absolute inset-0 shadow-[inset_0_-4px_12px_rgba(0,0,0,0.6)]" />
+        </div>
+      </motion.div>
+
+      {/* Dynamic Floor Shadow */}
+      <motion.div
+        className="absolute -bottom-8 w-[200px] h-[30px] bg-black/80 blur-xl rounded-full pointer-events-none"
+        style={{ transform: 'rotateX(70deg)' }}
+        animate={{ scale: [1, 0.8, 1], opacity: [0.6, 0.2, 0.6] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      />
     </div>
   );
 };
@@ -175,36 +175,106 @@ const BookCover: React.FC<{ onRead: () => void }> = ({ onRead }) => {
 /* ══════════════════════════════
    PAGE RENDERERS (Only place Serif exists)
 ══════════════════════════════ */
-const ChapterOpenerPage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page, isLeft }) => (
-  <div className="w-full h-full flex flex-col justify-end relative overflow-hidden"
-    style={{ background: '#0A0A0A', padding: '48px 40px' }}>
-    {/* Diagonal clip image area */}
-    <div style={{
-      position: 'absolute', inset: 0,
-      backgroundImage: 'url(/images/book-cover-perfect-years.jpg)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      opacity: 0.06,
-      clipPath: isLeft ? 'polygon(0 0, 70% 0, 30% 100%, 0 100%)' : 'polygon(30% 0, 100% 0, 100% 100%, 70% 100%)',
-    }} />
-    <div style={{ position: 'relative', zIndex: 1 }}>
-      <div style={{ width: 32, height: 2, background: '#E3000F', marginBottom: 24 }} />
-      <p style={{
-        fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: 10,
-        letterSpacing: '0.25em', textTransform: 'uppercase', color: '#E3000F', marginBottom: 16,
+const ChapterOpenerPage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page, isLeft }) => {
+  const IconComponent = page.chapterNumber ? CHAPTER_ICONS[page.chapterNumber] : null;
+
+  return (
+    <div
+      className="w-full h-full flex flex-col relative overflow-hidden"
+      style={{ background: '#0A0A0A', padding: '0' }}
+    >
+      {/* Diagonal faint background texture */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: 'url(/images/book-cover-perfect-years.jpg)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        opacity: 0.04,
+        clipPath: isLeft ? 'polygon(0 0, 70% 0, 30% 100%, 0 100%)' : 'polygon(30% 0, 100% 0, 100% 100%, 70% 100%)',
+      }} />
+
+      {/* Icon — upper 55% of page */}
+      <div style={{
+        flex: '0 0 55%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
       }}>
-        Chapter {page.chapterNumber}
-      </p>
-      <h2 style={{
-        fontFamily: 'DM Sans, sans-serif', fontWeight: 900, fontSize: 28,
-        lineHeight: 1.05, textTransform: 'uppercase', letterSpacing: '-0.02em',
-        color: '#f0ece4', marginBottom: 0,
+        {/* Radial glow behind icon */}
+        <div style={{
+          position: 'absolute',
+          width: 180,
+          height: 180,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(227,0,15,0.12) 0%, transparent 70%)',
+        }} />
+        {/* Outer ring */}
+        <div style={{
+          position: 'absolute',
+          width: 120,
+          height: 120,
+          borderRadius: '50%',
+          border: '1px solid rgba(227,0,15,0.18)',
+        }} />
+        {/* Inner ring */}
+        <div style={{
+          position: 'absolute',
+          width: 88,
+          height: 88,
+          borderRadius: '50%',
+          border: '1px solid rgba(227,0,15,0.30)',
+        }} />
+        {/* Icon itself */}
+        {IconComponent && (
+          <IconComponent
+            size={42}
+            color="#E3000F"
+            strokeWidth={1.25}
+            style={{ position: 'relative', zIndex: 1 }}
+          />
+        )}
+      </div>
+
+      {/* Text block — lower 45% */}
+      <div style={{
+        flex: '0 0 45%',
+        padding: '0 40px 44px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'flex-end',
+        position: 'relative',
+        zIndex: 1,
       }}>
-        {page.chapterTitle}
-      </h2>
+        {/* Red rule */}
+        <div style={{ width: 32, height: 2, background: '#E3000F', marginBottom: 20 }} />
+        <p style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 900,
+          fontSize: 9,
+          letterSpacing: '0.28em',
+          textTransform: 'uppercase',
+          color: '#E3000F',
+          marginBottom: 14,
+        }}>
+          Chapter {page.chapterNumber}
+        </p>
+        <h2 style={{
+          fontFamily: 'DM Sans, sans-serif',
+          fontWeight: 900,
+          fontSize: 26,
+          lineHeight: 1.08,
+          textTransform: 'uppercase',
+          letterSpacing: '-0.02em',
+          color: '#f0ece4',
+          margin: 0,
+        }}>
+          {page.chapterTitle}
+        </h2>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const PullQuotePage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page }) => (
   <div className="w-full h-full flex flex-col items-center justify-center relative overflow-hidden"
@@ -381,11 +451,6 @@ const FullScreenReader: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <div className="w-full h-full bg-gradient-to-br from-[#1a1a1a] to-[#0d0d0d] flex flex-col items-center justify-center text-center p-10 relative overflow-hidden border-r border-white/5">
                   <div className="absolute left-0 top-0 bottom-0 w-5 bg-gradient-to-r from-black/50 to-transparent" />
                   <img src="/images/book-cover-perfect-years.jpg" alt="" className="w-full h-full object-cover absolute inset-0 opacity-15 mix-blend-luminosity" />
-                  <div className="relative z-10">
-                    <h1 className="font-dm font-black text-4xl md:text-[52px] tracking-tighter uppercase leading-[0.9] text-[#f0ece4] mb-4">PERFECT<br /><span className="text-conflagrator-red">YEARS</span></h1>
-                    <div className="w-8 h-[2px] bg-conflagrator-red mx-auto my-5" />
-                    <p className="font-dm font-bold text-[9px] tracking-widest uppercase text-white/40">Salami Oreoluwa</p>
-                  </div>
                 </div>
               </div>
 

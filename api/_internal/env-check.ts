@@ -11,6 +11,7 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
     const hasSecret = !!process.env.CLOUDINARY_API_SECRET;
     const uploadPreset = !!process.env.CLOUDINARY_UPLOAD_PRESET;
     const folder = process.env.CLOUDINARY_FOLDER || null;
+    const hasPostgres = !!(process.env.POSTGRES_URL || process.env.VERCEL_POSTGRES_URL || process.env.POSTGRES_PRISMA_URL);
 
     res.status(200).json({
         ok: true,
@@ -20,6 +21,9 @@ export default function handler(req: VercelRequest, res: VercelResponse) {
             hasSecret,
             uploadPreset,
             folder,
+        },
+        postgres: {
+            configured: hasPostgres,
         },
     });
 }

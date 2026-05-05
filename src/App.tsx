@@ -15,7 +15,13 @@ gsap.registerPlugin(ScrollTrigger);
 
 function ScrollToTop() {
   const { pathname } = useLocation();
-  useEffect(() => { window.scrollTo(0, 0); ScrollTrigger.refresh(); }, [pathname]);
+  useEffect(() => {
+    // A small timeout ensures React has fully painted the new route before scrolling and refreshing GSAP
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      ScrollTrigger.refresh();
+    }, 0);
+  }, [pathname]);
   return null;
 }
 

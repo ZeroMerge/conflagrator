@@ -8,6 +8,8 @@ import CTAButton from '@/components/CTAButton';
 import ImageCarousel from '@/components/ImageCarousel';
 import { useAgeCounter } from '@/hooks/useAgeCounter';
 import { usePersonalGallery } from '@/hooks/usePersonalGallery';
+import { motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -24,59 +26,177 @@ const EditorialLine = () => (
   </div>
 );
 
+// /* ══════════════════════════════
+//    HERO
+// ══════════════════════════════ */
+// const Hero: React.FC = () => {
+//   const age = useAgeCounter();
+//   const imgRef = useRef<HTMLDivElement>(null);
+//   const wordsRef = useRef<HTMLDivElement>(null);
+
+//   useEffect(() => {
+//     const ctx = gsap.context(() => {
+//       if (imgRef.current) {
+//         gsap.to(imgRef.current, {
+//           yPercent: 15, ease: 'none',
+//           scrollTrigger: { trigger: imgRef.current, start: 'top top', end: 'bottom top', scrub: true },
+//         });
+//       }
+//       const words = wordsRef.current?.querySelectorAll('.hw');
+//       if (words) {
+//         gsap.fromTo(words,
+//           { opacity: 0, x: -20 },
+//           { opacity: 1, x: 0, duration: 1, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
+//         );
+//       }
+//     });
+//     return () => ctx.revert();
+//   }, []);
+
+//   return (
+//     <section className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center">
+//       <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform">
+//         <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-50" />
+//         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
+//       </div>
+
+//       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
+//         <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
+//           <div className="hw"><span className="font-dm font-black text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
+//           <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
+//           <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
+//           <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
+//           <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
+//           <div className="hw"><span className="font-dm font-black text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
+//         </div>
+//       </div>
+
+//       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
+//         <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
+//           {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
+//         </p>
+//       </div>
+//     </section>
+//   );
+// };
+
+
+gsap.registerPlugin(ScrollTrigger);
+
 /* ══════════════════════════════
-   HERO
+   HERO (With Kinetic Typography)
 ══════════════════════════════ */
 const Hero: React.FC = () => {
   const age = useAgeCounter();
   const imgRef = useRef<HTMLDivElement>(null);
   const wordsRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
+      // 1. Portrait Parallax (Existing)
       if (imgRef.current) {
         gsap.to(imgRef.current, {
           yPercent: 15, ease: 'none',
           scrollTrigger: { trigger: imgRef.current, start: 'top top', end: 'bottom top', scrub: true },
         });
       }
-      const words = wordsRef.current?.querySelectorAll('.hw');
-      if (words) {
-        gsap.fromTo(words,
-          { opacity: 0, x: -20 },
-          { opacity: 1, x: 0, duration: 1, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
+
+      // Target all the spans we want to animate
+      const wordElements = wordsRef.current?.querySelectorAll('.kinetic-word');
+
+      if (wordElements) {
+        // 2. Initial Intro Reveal (Start thin, animate in)
+        gsap.fromTo(wordElements,
+          { opacity: 0, x: -30, fontWeight: 100 },
+          { opacity: 1, x: 0, fontWeight: 300, duration: 1.2, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
         );
+
+        // 3. The Kinetic Morphing Logic
+        const handleMouseMove = (e: MouseEvent) => {
+          const { clientY, clientX } = e;
+
+          wordElements.forEach((word) => {
+            const rect = word.getBoundingClientRect();
+
+            // Find the center point of each specific word
+            const wordCenterY = rect.top + rect.height / 2;
+            const wordCenterX = rect.left + rect.width / 2;
+
+            // Calculate the distance from the cursor to the word's center
+            const distX = clientX - wordCenterX;
+            const distY = clientY - wordCenterY;
+            const distance = Math.sqrt(distX * distX + distY * distY);
+
+            // Map the distance to a font weight. 
+            // 0px away = 900 weight. 600px away = 100 weight.
+            let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
+            weight = gsap.utils.clamp(100, 900, weight);
+
+            // Animate the weight smoothly
+            gsap.to(word, {
+              fontWeight: weight,
+              duration: 0.4,
+              ease: 'power2.out',
+            });
+          });
+        };
+
+        const section = sectionRef.current;
+        if (section) {
+          section.addEventListener('mousemove', handleMouseMove);
+
+          // When the mouse leaves the hero section, reset all text back to a sleek, thin weight
+          section.addEventListener('mouseleave', () => {
+            gsap.to(wordElements, { fontWeight: 200, duration: 0.8, ease: 'power2.out' });
+          });
+        }
+
+        return () => {
+          if (section) {
+            section.removeEventListener('mousemove', handleMouseMove);
+            section.removeEventListener('mouseleave', () => { });
+          }
+        };
       }
     });
+
     return () => ctx.revert();
   }, []);
 
   return (
-    <section className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center">
-      <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform">
-        <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-50" />
+    <section ref={sectionRef} className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center cursor-crosshair">
+
+      {/* Background Portrait */}
+      <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform pointer-events-none">
+        {/* Added mix-blend-luminosity and lowered opacity slightly for a more editorial background feel */}
+        <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-30 mix-blend-luminosity" />
         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
       </div>
 
       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
         <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
-          <div className="hw"><span className="font-dm font-black text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
-          <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
-          <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
-          <div className="hw"><span className="font-dm font-black text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
-          <div className="hw"><span className="font-dm font-black text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
-          <div className="hw"><span className="font-dm font-black text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
+          {/* Note: I replaced 'font-black' with the 'kinetic-word' class target */}
+          <div className="hw"><span className="kinetic-word font-dm text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
+          <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
+          <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
+          <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[6.5vw] leading-[0.85] tracking-tighter text-off-white block">FOUNDER</span></div>
+          <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block">LEADER</span></div>
+          <div className="hw"><span className="kinetic-word font-dm text-[13vw] md:text-[6vw] leading-[0.85] tracking-tighter text-off-white block">ENGINEER</span></div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
+      <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10 pointer-events-none">
+        {/* Keeping the static font-black here for contrast against the morphing text */}
         <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
           {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
         </p>
       </div>
+
     </section>
   );
 };
+
 
 /* ══════════════════════════════
    CHAPTER 1: ORIGINS — TIMELINE WALL
@@ -177,6 +297,7 @@ const ChapterOrigins: React.FC = () => {
   );
 };
 
+
 /* ══════════════════════════════
    CHAPTER 2: THE AUTHOR (Bookshelf & Square Reveal)
 ══════════════════════════════ */
@@ -184,15 +305,15 @@ const ChapterAuthor: React.FC = () => {
   const [activeBook, setActiveBook] = useState(false);
 
   const books = [
-    { w: 'w-[30px] md:w-[40px]', h: 'h-[160px] md:h-[200px]', bg: 'bg-[#1a1a1a]', text: 'Governance' },
-    { w: 'w-[24px] md:w-[32px]', h: 'h-[140px] md:h-[180px]', bg: 'bg-[#222]', text: 'Faith' },
-    { w: 'w-[40px] md:w-[60px]', h: 'h-[180px] md:h-[240px]', bg: 'bg-conflagrator-red', text: 'PERFECT YEARS', target: true },
-    { w: 'w-[28px] md:w-[36px]', h: 'h-[150px] md:h-[190px]', bg: 'bg-[#111]', text: 'Policy' },
-    { w: 'w-[34px] md:w-[44px]', h: 'h-[170px] md:h-[210px]', bg: 'bg-[#1a1a1a]', text: 'Vision' },
+    { w: 'w-[30px] md:w-[40px]', h: 'h-[160px] md:h-[200px]', bg: 'from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a]', text: 'Governance' },
+    { w: 'w-[24px] md:w-[32px]', h: 'h-[140px] md:h-[180px]', bg: 'from-[#111] via-[#222] to-[#111]', text: 'Faith' },
+    { w: 'w-[40px] md:w-[60px]', h: 'h-[180px] md:h-[240px]', bg: 'from-[#3a0505] via-[#7a1515] to-[#2a0202]', text: 'PERFECT YEARS', target: true },
+    { w: 'w-[28px] md:w-[36px]', h: 'h-[150px] md:h-[190px]', bg: 'from-[#050505] via-[#111] to-[#050505]', text: 'Policy' },
+    { w: 'w-[34px] md:w-[44px]', h: 'h-[170px] md:h-[210px]', bg: 'from-[#0a0a0a] via-[#1a1a1a] to-[#0a0a0a]', text: 'Vision' },
   ];
 
   return (
-    <section className="py-24 md:py-40 px-6 md:px-16 lg:px-24 bg-[#0d0d0d]">
+    <section className="py-24 md:py-40 px-6 md:px-16 lg:px-24 bg-[#0d0d0d] overflow-hidden">
       <div className="max-w-5xl mx-auto">
         <ScrollReveal>
           <p className="font-dm font-black text-4xl md:text-7xl text-off-white leading-[0.9] tracking-tighter mb-20">
@@ -202,40 +323,173 @@ const ChapterAuthor: React.FC = () => {
 
         <ScrollReveal delay={0.2}>
           <div className="max-w-4xl mx-auto">
-            <div className="flex items-end justify-center gap-1 md:gap-2 px-8">
+
+            {/* UPGRADED BOOKSHELF WITH ACCESSORIES */}
+            <div className="flex items-end justify-center gap-[2px] md:gap-1 px-8 relative z-10">
+
+              {/* Accessory 1: Brutalist Monolith Bookend */}
+              <div className="relative w-8 md:w-12 h-28 md:h-36 mx-4 origin-bottom transition-transform duration-500 hover:-translate-y-2 cursor-pointer group">
+                <div
+                  className="w-full h-full bg-gradient-to-tr from-[#050505] via-[#1a1a1a] to-[#0a0a0a] border border-white/5 shadow-[-8px_0_20px_rgba(0,0,0,0.9)] relative overflow-hidden"
+                  style={{ clipPath: 'polygon(0 15%, 100% 0, 100% 100%, 0% 100%)' }}
+                >
+                  <div className="absolute left-0 top-0 bottom-0 w-[1px] bg-white/10" />
+                  <div className="absolute left-1/2 -translate-x-1/2 top-8 bottom-4 w-[1px] bg-gradient-to-b from-transparent via-[#7a1515] to-transparent opacity-40 group-hover:opacity-100 group-hover:shadow-[0_0_8px_#7a1515] transition-all duration-500" />
+                </div>
+              </div>
+
+              {/* Books */}
               {books.map((b, i) => (
                 <div
                   key={i}
                   onClick={() => b.target && setActiveBook(!activeBook)}
-                  className={`relative flex items-center justify-center transition-transform duration-300 origin-bottom ${b.w} ${b.h} ${b.bg} ${b.target ? 'cursor-pointer z-10 hover:scale-105' : 'z-0'}`}
-                  style={{ transform: b.target && activeBook ? 'translateY(-20px)' : 'translateY(0)' }}
+                  className={`relative flex items-center justify-center transition-all duration-300 origin-bottom 
+                    ${b.w} ${b.h} bg-gradient-to-r ${b.bg} 
+                    border-y border-white/10 border-x border-black/50
+                    shadow-[inset_2px_0_4px_rgba(255,255,255,0.05),inset_-2px_0_8px_rgba(0,0,0,0.8)]
+                    ${b.target ? 'cursor-pointer z-20 hover:scale-[1.03] hover:-translate-y-2' : 'z-0'}
+                  `}
+                  style={{ transform: b.target && activeBook ? 'translateY(-20px)' : '' }}
                 >
-                  <span className={`font-dm font-bold text-[9px] md:text-xs tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 ${b.target ? 'text-deep-black' : 'text-white/30'}`}>
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-white/20" />
+                  <span className={`font-dm font-bold text-[9px] md:text-xs tracking-widest uppercase [writing-mode:vertical-rl] rotate-180 drop-shadow-md ${b.target ? 'text-[#e0deda]' : 'text-[#e0deda]/30'}`}>
                     {b.text}
                   </span>
                 </div>
               ))}
-            </div>
-            <div className="w-full h-4 bg-[#111] border-t-2 border-[#222]" />
-            <div className="w-full h-8 bg-[#0a0a0a]" />
 
-            <div className={`overflow-hidden transition-all duration-500 ease-in-out ${activeBook ? 'max-h-[600px] mt-12 opacity-100' : 'max-h-0 opacity-0 mt-0'}`}>
-              <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 bg-deep-black p-8 md:p-12 border border-white/5">
-                <div className="w-48 h-48 md:w-64 md:h-64 flex-shrink-0 bg-[#0a0a0a]">
-                  <img src="/images/book-cover-perfect-years.jpg" alt="Perfect Years" className="w-full h-full object-cover grayscale-[20%]" />
+              {/* Accessory 2: Matte Black Luxury Candle */}
+              <div className="relative w-12 md:w-16 h-12 md:h-14 mx-4 origin-bottom transition-transform duration-500 hover:scale-105 cursor-pointer flex flex-col justify-end group">
+                <div className="w-full h-full bg-gradient-to-b from-[#1a1a1a] to-[#050505] rounded-[2px] border border-white/5 border-b-black shadow-[-5px_0_15px_rgba(0,0,0,0.9)] relative">
+                  <div className="absolute bottom-3 left-0 right-0 h-[6px] bg-[#0a0a0a] border-y border-white/5 flex items-center justify-center">
+                    <div className="w-2 h-[1px] bg-white/20" />
+                  </div>
+                  <div className="absolute -top-1 left-0 right-0 h-3 bg-[#0a0a0a] rounded-[50%] border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] flex items-center justify-center">
+                    <div className="w-[1.5px] h-2 bg-[#333] relative -mt-1">
+                      <div className="absolute -top-1 -left-1 w-2.5 h-2.5 bg-[#7a1515] rounded-full blur-[2px] opacity-60 group-hover:opacity-100 group-hover:scale-150 transition-all duration-300" />
+                      <div className="absolute -top-0.5 left-[0.5px] w-0.5 h-0.5 bg-white/80 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 delay-100" />
+                    </div>
+                  </div>
                 </div>
-                <div className="text-center md:text-left">
-                  <h3 className="font-dm font-black text-4xl md:text-6xl tracking-tighter text-off-white mb-6">PERFECT<br /><span className="text-conflagrator-red">YEARS</span></h3>
+              </div>
+
+            </div>
+
+            {/* PHYSICAL SHELF */}
+            <div className="w-full relative z-0">
+              <div className="w-full h-1 bg-gradient-to-b from-[#333] to-[#111]" />
+              <div className="w-full h-4 bg-[#0a0a0a] border-b border-black shadow-[0_10px_30px_rgba(0,0,0,0.9)]" />
+              <div className="w-full h-12 bg-gradient-to-b from-black to-transparent opacity-80" />
+            </div>
+
+            {/* REVEALED BOOK SECTION */}
+            <div className={`overflow-hidden transition-all duration-700 ease-out ${activeBook ? 'max-h-[800px] mt-4 opacity-100' : 'max-h-0 opacity-0 mt-0'}`}>
+              <div className="flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24 bg-transparent p-8 md:p-12 relative">
+                <div className="relative w-64 h-80 md:w-80 md:h-[400px] flex-shrink-0 [perspective:1000px] z-10">
+                  <HoveringArtifact />
+                </div>
+                <div className="text-center md:text-left z-10">
+                  <h3 className="font-dm font-black text-4xl md:text-6xl tracking-tighter text-off-white mb-6">
+                    PERFECT<br /><span className="text-[#7a1515]">YEARS</span>
+                  </h3>
                   <CTAButton href="/book">Read the Book</CTAButton>
                 </div>
               </div>
             </div>
+
           </div>
         </ScrollReveal>
       </div>
     </section>
   );
 };
+
+/* ══════════════════════════════
+   THE TRUE 3D HOVERING ARTIFACT (WATERTIGHT GEOMETRY)
+══════════════════════════════ */
+const HoveringArtifact: React.FC = () => {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [25, -5]), { damping: 30, stiffness: 50 });
+  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-40, 0]), { damping: 30, stiffness: 50 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const { innerWidth, innerHeight } = window;
+      mouseX.set(e.clientX / innerWidth - 0.5);
+      mouseY.set(e.clientY / innerHeight - 0.5);
+    };
+
+    const handleDeviceOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta && e.gamma) {
+        const x = Math.min(Math.max(e.gamma / 40, -0.5), 0.5);
+        const y = Math.min(Math.max((e.beta - 45) / 40, -0.5), 0.5);
+        mouseX.set(x);
+        mouseY.set(y);
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('deviceorientation', handleDeviceOrientation);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('deviceorientation', handleDeviceOrientation);
+    };
+  }, [mouseX, mouseY]);
+
+  const depth = 48;
+
+  return (
+    <div className="w-full h-full relative flex items-center justify-center [perspective:1200px]">
+      <div className="absolute inset-0 overflow-hidden rounded-full blur-3xl opacity-20 bg-[#7a1515]/30 -z-10" />
+      {[...Array(6)].map((_, i) => <Ember key={i} delay={i * 0.8} />)}
+
+      <motion.div
+        className="relative w-[200px] md:w-[260px] h-[280px] md:h-[360px]"
+        style={{ rotateX, rotateY, transformStyle: 'preserve-3d' }}
+        animate={{ y: [-10, 10, -10] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <div className="absolute inset-0 scale-[1.03] bg-[#0d0d0d] border border-white/10 shadow-2xl overflow-hidden" style={{ transform: `translateZ(${depth / 2}px)` }}>
+          <img src="/images/book-cover-perfect-years.jpg" alt="Perfect Years" className="w-full h-full object-cover mix-blend-lighten opacity-90" />
+          <div className="absolute left-0 top-0 bottom-0 w-3 bg-gradient-to-r from-black/80 to-transparent pointer-events-none" />
+        </div>
+        <div className="absolute inset-0 scale-[1.03] bg-[#080808] border border-white/10" style={{ transform: `rotateY(180deg) translateZ(${depth / 2}px)` }} />
+        <div className="absolute top-0 bottom-0 left-0 w-[48px] scale-y-[1.03] bg-[#050505] border-l border-white/10 flex items-center justify-center overflow-hidden" style={{ transform: `translateX(-24px) rotateY(-90deg)` }}>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-transparent to-black/90" />
+        </div>
+        <div className="absolute top-0 bottom-0 right-0 w-[48px] bg-[#cca35e] overflow-hidden" style={{ transform: `translateX(24px) rotateY(90deg)` }}>
+          <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: 'repeating-linear-gradient(90deg, transparent, transparent 2px, #000 2px, #000 3px)' }} />
+          <div className="absolute inset-0 shadow-[inset_4px_0_12px_rgba(0,0,0,0.6)]" />
+        </div>
+        <div className="absolute top-0 left-0 right-0 h-[48px] bg-[#cca35e] overflow-hidden" style={{ transform: `translateY(-24px) rotateX(90deg)` }}>
+          <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 3px)' }} />
+          <div className="absolute inset-0 shadow-[inset_0_4px_12px_rgba(0,0,0,0.6)]" />
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-[48px] bg-[#cca35e] overflow-hidden" style={{ transform: `translateY(24px) rotateX(-90deg)` }}>
+          <div className="absolute inset-0 opacity-40 mix-blend-multiply" style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 3px)' }} />
+          <div className="absolute inset-0 shadow-[inset_0_-4px_12px_rgba(0,0,0,0.6)]" />
+        </div>
+      </motion.div>
+      <motion.div className="absolute -bottom-16 w-[180px] h-[30px] bg-black/80 blur-xl rounded-full" style={{ transform: 'rotateX(70deg)' }} animate={{ scale: [1, 0.8, 1], opacity: [0.6, 0.2, 0.6] }} transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }} />
+    </div>
+  );
+};
+
+const Ember: React.FC<{ delay: number }> = ({ delay }) => {
+  const randomX = Math.random() * 100 - 50;
+  return (
+    <motion.div
+      className="absolute w-1.5 h-1.5 bg-[#7a1515] rounded-full blur-[1px]"
+      initial={{ opacity: 0, y: 100, x: randomX }}
+      animate={{ opacity: [0, 0.8, 0], y: -200, x: randomX + (Math.random() * 40 - 20) }}
+      transition={{ duration: 3 + Math.random() * 2, repeat: Infinity, delay: delay, ease: 'linear' }}
+    />
+  );
+};
+
+
 
 /* ══════════════════════════════
    CHAPTER 3: THE BICYCLE
@@ -547,29 +801,51 @@ const Home: React.FC = () => {
 
       {/* Verification / Consent modal shown after upload completes */}
       {pendingUpload && (
-        <div className="fixed inset-0 z-70 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/80" onClick={() => setPendingUpload(null)} />
-          <div className="relative z-80 w-full max-w-lg mx-4 md:mx-0 bg-deep-black border border-white/10 rounded-lg p-6 md:p-8">
-            <h3 className="font-dm font-bold text-lg text-off-white mb-3">Confirm upload</h3>
-            <div className="mb-4">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={() => setPendingUpload(null)} />
+          <div className="relative z-50 w-full max-w-lg mx-4 md:mx-0 bg-deep-black border border-white/10 rounded-lg p-6 md:p-8 shadow-2xl">
+            <h3 className="font-dm font-bold text-lg text-off-white mb-4">Preview your upload</h3>
+
+            {/* Media Preview */}
+            <div className="mb-6 rounded-lg overflow-hidden bg-black/50">
               {pendingUpload.resource_type === 'video' ? (
-                <video src={pendingUpload.secure_url} controls className="w-full rounded-md" />
+                <video src={pendingUpload.secure_url} controls className="w-full rounded-md max-h-80 object-cover" />
               ) : (
-                <img src={pendingUpload.secure_url || pendingUpload.secureUrl || pendingUpload.url} alt="preview" className="w-full rounded-md" />
+                <img src={pendingUpload.secure_url || pendingUpload.secureUrl || pendingUpload.url} alt="preview" className="w-full rounded-md max-h-80 object-cover" />
               )}
             </div>
-            <label className="flex items-start gap-3 mb-4">
-              <input type="checkbox" className="mt-1" id="consent" />
-              <div className="text-[13px] text-white/70">I consent to my photo being displayed publicly on this website if approved by an admin.</div>
+
+            {/* Consent Checkbox */}
+            <label className="flex items-start gap-3 mb-6 cursor-pointer group">
+              <input
+                type="checkbox"
+                className="mt-1.5 w-4 h-4 cursor-pointer accent-conflagrator-red"
+                id="consent-check"
+              />
+              <div className="text-[13px] text-white/70 group-hover:text-white/90 transition">
+                I consent to my photo being displayed publicly on this website if approved by an admin.
+              </div>
             </label>
+
+            {/* Action Buttons */}
             <div className="flex items-center gap-3 justify-end">
-              <button onClick={() => setPendingUpload(null)} className="px-4 py-2 border border-white/10 text-white/60">Cancel</button>
               <button
-                onClick={() => {
-                  setToast('Upload confirmed. Awaiting admin approval.');
+                onClick={() => setPendingUpload(null)}
+                className="px-4 py-2 border border-white/10 text-white/60 hover:text-white/80 rounded transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={(e) => {
+                  const consentCheck = document.getElementById('consent-check') as HTMLInputElement;
+                  if (!consentCheck?.checked) {
+                    setToast('Please check the consent box to proceed.');
+                    return;
+                  }
+                  setToast('✓ Upload confirmed. Awaiting admin approval.');
                   setPendingUpload(null);
                 }}
-                className="px-4 py-2 bg-conflagrator-red text-white rounded"
+                className="px-6 py-2 bg-conflagrator-red hover:bg-red-600 text-white rounded font-dm font-medium transition"
               >
                 Confirm and send
               </button>

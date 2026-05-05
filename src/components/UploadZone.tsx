@@ -158,6 +158,30 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess, onUploadMessag
         return response.json();
     };
 
+    const registerUpload = async (uploadResult: any) => {
+        const response = await fetch('/api/personal/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                publicId: uploadResult.public_id,
+                secureUrl: uploadResult.secure_url,
+                resourceType: uploadResult.resource_type,
+                format: uploadResult.format,
+                bytes: uploadResult.bytes,
+                folder: uploadResult.folder || CLOUDINARY_FOLDER,
+            }),
+        });
+
+        if (!response.ok) {
+            const body = await response.json().catch(() => ({}));
+            throw new Error(body?.message || 'Failed to register upload');
+        }
+
+        return response.json();
+    };
+
     const createPreview = (file: Blob | File, kind: MediaKind) => {
         const url = URL.createObjectURL(file);
         const name = file instanceof File ? file.name : kind;
@@ -183,7 +207,8 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess, onUploadMessag
                 createPreview(transformed.blob, transformed.kind);
 
                 const uploadResult = await uploadToCloudinary(transformed.blob, transformed.filename, transformed.kind);
-                const successText = `Uploaded ${file.name}. It is awaiting approval.`;
+                await registerUpload(uploadResult);
+                const successText = `Uploaded ${file.name}. It is queued for review.`;
 
                 setMessage({
                     type: 'success',
@@ -205,7 +230,8 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onUploadSuccess, onUploadMessag
             const safeFilename = buildSafeFilename(file.name);
             createPreview(file, kind);
             const uploadResult = await uploadToCloudinary(file, safeFilename, kind);
-            const successText = `Uploaded ${file.name}. It is awaiting approval.`;
+            await registerUpload(uploadResult);
+            const successText = `Uploaded ${file.name}. It is queued for review.`;
 
             setMessage({
                 type: 'success',

@@ -38,9 +38,6 @@ const SocialGrid: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end">
-            <span className="font-dm font-bold text-[10px] md:text-xs tracking-widest uppercase text-white/40 group-hover:text-deep-black transition-colors duration-500">
-              {s.handle}
-            </span>
             <ArrowRight className="w-5 h-5 md:w-6 md:h-6 text-conflagrator-red transform -translate-x-2 md:-translate-x-4 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-500" />
           </div>
         </a>

@@ -104,7 +104,7 @@ const Admin: React.FC = () => {
             // If it's likely a dev-server issue, give an actionable hint
             const msg = err instanceof Error ? err.message : 'Failed to load pending uploads';
             const hint = msg.includes('Non-JSON response') || msg.includes('import {')
-                ? 'It looks like your dev server is serving source files instead of running the API. Make sure serverless API routes are enabled and that CLOUDINARY_API_KEY / CLOUDINARY_API_SECRET are set for server-side listing.'
+                ? 'Make sure the Vercel Postgres integration is attached to this project and that the API routes are deployed. The admin queue now reads from Postgres, not Cloudinary search.'
                 : '';
             setError([msg, hint].filter(Boolean).join(' — '));
             setItems([]);
