@@ -360,7 +360,7 @@ const SectionPage: React.FC<{ page: ParsedPage; isLeft: boolean }> = ({ page, is
           <p key={i} style={{
             fontFamily: 'Georgia, serif',
             fontSize: 15.5,
-            lineHeight: LINE_H / 15.5,
+            lineHeight: `${LINE_H}px`,
             color: '#1c1c1c',
             marginBottom: 0,            // lines must align to grid — no extra gap
             marginTop: 0,
@@ -435,7 +435,7 @@ const BodyPage: React.FC<{ page: ParsedPage; pageNum: number; isLeft: boolean }>
             <p key={i} style={{
               fontFamily: 'Georgia, serif',
               fontSize: FONT_SIZE,
-              lineHeight: LINE_H / FONT_SIZE,
+              lineHeight: `${LINE_H}px`,
               color: '#1c1c1c',
               marginBottom: 0,
               marginTop: 0,
@@ -503,7 +503,7 @@ function paginateWithMeasurement(
     pointerEvents: 'none', zIndex: '-1',
     width: `${textW}px`, height: `${textH}px`,
     overflow: 'hidden',
-    fontFamily: 'Georgia, serif', fontSize: '15.5px', lineHeight: '1.9',
+    fontFamily: 'Georgia, serif', fontSize: '15.5px', lineHeight: '29.5px',
     textAlign: 'justify', wordBreak: 'normal', overflowWrap: 'break-word',
   });
   document.body.appendChild(m);
@@ -525,10 +525,31 @@ function paginateWithMeasurement(
     let currentParas: string[] = [];
     let isFirstPage = true;
 
-    for (const para of paras) {
+    for (let i = 0; i < paras.length; i++) {
+      const para = paras[i];
       const p = document.createElement('p');
       Object.assign(p.style, { margin: '0', padding: '0', textIndent: '1.3em' });
-      p.textContent = para;
+      
+      const isDropCap = chapterStartPending && isFirstPage && i === 0;
+      if (isDropCap) {
+        p.style.textIndent = '0';
+        const span = document.createElement('span');
+        Object.assign(span.style, {
+          float: 'left',
+          fontFamily: 'DM Sans, sans-serif',
+          fontWeight: '900',
+          fontSize: '56px',
+          lineHeight: '0.8',
+          marginRight: '7px',
+          marginTop: '7px',
+          textTransform: 'uppercase'
+        });
+        span.textContent = para[0] || '';
+        p.appendChild(span);
+        p.appendChild(document.createTextNode(para.slice(1)));
+      } else {
+        p.textContent = para;
+      }
       m.appendChild(p);
 
       if (m.scrollHeight > m.clientHeight) {
@@ -541,7 +562,9 @@ function paginateWithMeasurement(
         }
         // New page: reset measurer, no reserved space
         m.innerHTML = '';
+        p.innerHTML = '';
         p.style.textIndent = '1.3em';
+        p.textContent = para;
         m.appendChild(p);
         currentParas = [para];
       } else {
@@ -561,7 +584,9 @@ function paginateWithMeasurement(
       chapterStartPending = true;
     } else if (block.kind === 'pullquote') {
       pages.push({ type: 'pull-quote', quote: block.quote });
+      chapterStartPending = false;
     } else if (block.kind === 'section') {
+      chapterStartPending = false;
       // Sections: first page has title header (~60px), rest are plain
       let firstPage = true;
       const headerH = 60; // approximate height of section title + rule
@@ -850,6 +875,10 @@ const AuthorBlock: React.FC = () => (
 ══════════════════════════════ */
 const Book: React.FC = () => {
   const [reading, setReading] = useState(false);
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   return (
     <div className="bg-deep-black min-h-[100svh]">

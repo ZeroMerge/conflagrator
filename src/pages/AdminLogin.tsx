@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router';
 
 const UNLOCK_KEY = 'admin-login-unlocked';
 const LOCAL_ADMIN_SESSION_KEY = 'admin-session-local';
-const LOCAL_ADMIN_PASSWORD = 'oreoluwa123';
 
 const AdminLogin: React.FC = () => {
     const navigate = useNavigate();
@@ -26,14 +25,21 @@ const AdminLogin: React.FC = () => {
         const typedPassword = password.trim();
 
         try {
-            if (typedPassword === LOCAL_ADMIN_PASSWORD) {
+            const res = await fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: typedPassword })
+            });
+
+            if (res.ok) {
                 sessionStorage.setItem(LOCAL_ADMIN_SESSION_KEY, '1');
                 sessionStorage.removeItem(UNLOCK_KEY);
                 navigate('/admin', { replace: true });
                 return;
             }
 
-            throw new Error('Login failed');
+            const data = await res.json().catch(() => null);
+            throw new Error(data?.message || 'Login failed');
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Login failed');
         } finally {

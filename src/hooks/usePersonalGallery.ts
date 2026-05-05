@@ -18,6 +18,11 @@ export const usePersonalGallery = () => {
                 const res = await fetch(`/api/personal/approved?v=${Date.now()}`);
                 if (!res.ok) throw new Error('Failed to fetch approved uploads');
 
+                const contentType = res.headers.get("content-type");
+                if (!contentType || !contentType.includes("application/json")) {
+                    throw new Error(`Expected JSON but got ${contentType}`);
+                }
+
                 const payload = await res.json();
                 const list = Array.isArray(payload?.items) ? payload.items : [];
 
@@ -46,7 +51,19 @@ export const usePersonalGallery = () => {
                     const res = await fetch(`/personal-manifest.json?v=${Date.now()}`);
                     if (!res.ok) throw new Error('Failed to fetch manifest fallback');
 
-                    const manifest = await res.json();
+                    const contentType = res.headers.get("content-type");
+                    let manifest;
+                    if (!contentType || !contentType.includes("application/json")) {
+                        const text = await res.text();
+                        try {
+                            manifest = JSON.parse(text);
+                        } catch (e) {
+                            throw new Error(`Manifest is not JSON.`);
+                        }
+                    } else {
+                        manifest = await res.json();
+                    }
+
                     const list = Array.isArray(manifest) ? manifest : [];
 
                     const transformed: CarouselItem[] = list

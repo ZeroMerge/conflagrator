@@ -8,7 +8,7 @@ type AdminSessionPayload = {
     exp: number;
 };
 
-const SESSION_COOKIE = 'admin_session';
+const SESSION_COOKIE = process.env.SESSION_COOKIE || 'admin_session';
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
 const loadLocalEnv = () => {
     const envPath = path.join(process.cwd(), '.env');

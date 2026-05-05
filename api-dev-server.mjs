@@ -66,6 +66,27 @@ export function apiDevServer() {
                             return;
                         }
 
+                        // Add Express/Vercel style helpers to res
+                        if (!res.status) {
+                            res.status = function(code) {
+                                this.statusCode = code;
+                                return this;
+                            };
+                        }
+                        if (!res.json) {
+                            res.json = function(data) {
+                                if (!this.getHeader('Content-Type')) {
+                                    this.setHeader('Content-Type', 'application/json');
+                                }
+                                this.end(JSON.stringify(data));
+                            };
+                        }
+                        if (!res.send) {
+                            res.send = function(data) {
+                                this.end(data);
+                            };
+                        }
+
                         // Read request body
                         let body = '';
                         req.on('data', chunk => {
