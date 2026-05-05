@@ -62,22 +62,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
-    try {
-        const dbItems = await listApprovedUploads();
-        const fallbackItems = readManifestFallback();
-        const seen = new Set<string>();
-        const merged = [...dbItems, ...fallbackItems].filter((item: any) => {
-            const key = item.publicId || item.secureUrl;
-            if (!key || seen.has(key)) return false;
-            seen.add(key);
-            return true;
-        });
+    // Always load static manifest items first (never fails)
+    const fallbackItems = readManifestFallback();
 
-        return res.status(200).json({ items: merged });
-    } catch (error) {
-        return res.status(500).json({
-            message: 'Failed to load gallery uploads',
-            error: error instanceof Error ? error.message : 'Unknown error',
-        });
+    let dbItems: any[] = [];
+    try {
+        dbItems = await listApprovedUploads();
+    } catch {
+        // Database unavailable — serve static manifest only
+        console.warn('[approved] Database unavailable, using static manifest fallback');
+        return res.status(200).json({ items: fallbackItems });
     }
+
+    const seen = new Set<string>();
+    const merged = [...dbItems, ...fallbackItems].filter((item: any) => {
+        const key = item.publicId || item.secureUrl;
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    });
+
+    return res.status(200).json({ items: merged });
 }

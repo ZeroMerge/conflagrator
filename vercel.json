@@ -3,15 +3,12 @@
     "trailingSlash": false,
     "rewrites": [
         {
-            "source": "/(.*)",
-            "destination": "/index.html"
-        }
-    ],
-    "redirects": [
+            "source": "/api/(.*)",
+            "destination": "/api/$1"
+        },
         {
-            "source": "/old-page",
-            "destination": "/new-page",
-            "permanent": true
+            "source": "/((?!api/).*)",
+            "destination": "/index.html"
         }
     ]
 }
