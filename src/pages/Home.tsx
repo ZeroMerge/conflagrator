@@ -596,22 +596,10 @@ const Home: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [pendingFile, setPendingFile] = useState<ReadyFile | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // pendingUpload is the Cloudinary result — only set AFTER consent
-  const [pendingUpload, setPendingUpload] = useState<any | null>(null);
+  // pendingUpload state removed — approved images come from DB via usePersonalGallery only
   const { items: galleryItems } = usePersonalGallery();
 
-  const displayCarouselItems = React.useMemo(() => {
-    const list = [...galleryItems];
-    if (pendingUpload) {
-      list.unshift({
-        filename: pendingUpload.public_id || pendingUpload.public_id || 'pending-preview',
-        type: pendingUpload.resource_type === 'video' ? 'video' : 'image',
-        src: pendingUpload.secure_url || pendingUpload.secureUrl || pendingUpload.url,
-        uploaded: new Date().toISOString(),
-      });
-    }
-    return list;
-  }, [galleryItems, pendingUpload]);
+  const displayCarouselItems = React.useMemo(() => [...galleryItems], [galleryItems]);
 
   useEffect(() => {
     if (!toast) return;
@@ -695,16 +683,11 @@ const Home: React.FC = () => {
             </div>
 
             <div className="p-5 md:p-8">
-              {(galleryItems.length === 0 && !pendingUpload) ? (
+              {galleryItems.length === 0 ? (
                 <div className="text-white/40 font-dm text-sm border border-white/10 p-6 rounded-lg">No uploaded moments yet.</div>
               ) : (
                 <div className="columns-1 sm:columns-2 lg:columns-3 2xl:columns-4 gap-4 [column-fill:_balance]">
-                  {([...(pendingUpload ? [{
-                    filename: pendingUpload.public_id || 'pending-preview',
-                    type: pendingUpload.resource_type === 'video' ? 'video' : 'image',
-                    src: pendingUpload.secure_url || pendingUpload.secureUrl || pendingUpload.url,
-                    uploaded: new Date().toISOString(),
-                  }] : []), ...galleryItems]).map(item => (
+                  {galleryItems.map(item => (
                     <figure key={item.filename} className="mb-4 break-inside-avoid overflow-hidden rounded-xl border border-white/10 bg-white/[0.03] shadow-lg">
                       {item.type === 'video' ? (
                         <video src={item.src} autoPlay loop muted playsInline className="w-full h-auto block" />
@@ -806,7 +789,7 @@ const Home: React.FC = () => {
                   try {
                     // 1. Upload to Cloudinary NOW (after consent)
                     const cloudResult = await uploadToCloudinary(file.blob, file.filename, file.kind);
-                    setPendingUpload(cloudResult);
+                    // cloudResult stored; not previewed locally — only DB-approved items show in gallery
                     // 2. Register in DB
                     const res = await fetch('/api/personal/register', {
                       method: 'POST',

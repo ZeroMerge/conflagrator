@@ -99,7 +99,17 @@ const Admin: React.FC = () => {
                 throw new Error(`Non-JSON response from /api/personal/pending: ${txt.slice(0, 200)}`);
             }
 
-            setItems(Array.isArray(body.items) ? body.items : []);
+            // Normalise field names: DB returns snake_case, camelCase both need to work
+            const rawItems = Array.isArray(body.items) ? body.items : [];
+            const normalised: PendingItem[] = rawItems.map((r: any) => ({
+                publicId: r.public_id ?? r.publicId ?? '',
+                secureUrl: r.secure_url ?? r.secureUrl ?? '',
+                resourceType: (r.resource_type ?? r.resourceType ?? 'image') as 'image' | 'video',
+                format: r.format,
+                bytes: r.bytes,
+                createdAt: r.created_at ?? r.createdAt,
+            }));
+            setItems(normalised);
         } catch (err) {
             // If it's likely a dev-server issue, give an actionable hint
             const msg = err instanceof Error ? err.message : 'Failed to load pending uploads';
