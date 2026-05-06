@@ -15,11 +15,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const sql = neon(dbUrl);
-        const dbRows = await sql(
-            `SELECT id, public_id, secure_url, resource_type, format, bytes, folder, status,
-                    created_at, approved_at, approved_by
-             FROM personal_uploads WHERE status = 'approved' ORDER BY approved_at DESC`
-        );
+        const dbRows = await sql`
+            SELECT id, public_id, secure_url, resource_type, format, bytes, folder, status,
+                   created_at, approved_at, approved_by
+            FROM personal_uploads WHERE status = 'approved' ORDER BY approved_at DESC
+        `;
         return res.status(200).json({ items: dbRows });
     } catch (err: any) {
         const msg = err?.message ?? 'Unknown';

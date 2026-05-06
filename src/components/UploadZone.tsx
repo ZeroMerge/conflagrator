@@ -70,20 +70,43 @@ const transformImage = (file: File): Promise<{ blob: Blob; filename: string }> =
     });
 
 // ── Exposed helper so Home.tsx can call Cloudinary after consent ──────────────
-export const uploadToCloudinary = async (blob: Blob, filename: string, kind: MediaKind) => {
-    const resourceType = kind === 'video' ? 'video' : 'image';
-    const fd = new FormData();
-    fd.append('file', blob, filename);
-    fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    fd.append('folder', CLOUDINARY_FOLDER);
-    fd.append('public_id', filename.replace(/\.[^.]+$/, ''));
+export const uploadToCloudinary = (blob: Blob, filename: string, kind: MediaKind, onProgress?: (progress: number) => void): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const resourceType = kind === 'video' ? 'video' : 'image';
+        const fd = new FormData();
+        fd.append('file', blob, filename);
+        fd.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+        fd.append('folder', CLOUDINARY_FOLDER);
+        fd.append('public_id', filename.replace(/\.[^.]+$/, ''));
 
-    const res = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`,
-        { method: 'POST', body: fd }
-    );
-    if (!res.ok) throw new Error(await res.text() || 'Cloudinary upload failed');
-    return res.json();
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`);
+
+        if (onProgress) {
+            xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    onProgress(percent);
+                }
+            };
+        }
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    resolve(response);
+                } catch (err) {
+                    reject(new Error('Invalid JSON response from Cloudinary'));
+                }
+            } else {
+                reject(new Error(xhr.responseText || 'Cloudinary upload failed'));
+            }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.send(fd);
+    });
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

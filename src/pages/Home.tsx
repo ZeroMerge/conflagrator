@@ -593,19 +593,20 @@ const ChapterQuotes: React.FC = () => {
 const Home: React.FC = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [uploadToast, setUploadToast] = useState<{ type: 'info' | 'error' | 'success' | 'uploading', message: string, progress?: number } | null>(null);
   const [pendingFile, setPendingFile] = useState<ReadyFile | null>(null);
-  const [submitting, setSubmitting] = useState(false);
   // pendingUpload state removed — approved images come from DB via usePersonalGallery only
   const { items: galleryItems } = usePersonalGallery();
 
   const displayCarouselItems = React.useMemo(() => [...galleryItems], [galleryItems]);
 
   useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3500);
-    return () => clearTimeout(t);
-  }, [toast]);
+    if (!uploadToast) return;
+    if (uploadToast.type !== 'uploading') {
+      const t = setTimeout(() => setUploadToast(null), 3500);
+      return () => clearTimeout(t);
+    }
+  }, [uploadToast]);
 
   return (
     <div className="bg-deep-black">
@@ -724,9 +725,24 @@ const Home: React.FC = () => {
       )}
 
       {/* Toast */}
-      {toast && (
-        <div className="fixed right-6 bottom-6 z-60 bg-teal/10 border border-teal/30 text-teal px-4 py-2 rounded font-dm text-sm">
-          {toast}
+      {uploadToast && (
+        <div className={`fixed right-6 bottom-6 z-[70] border px-4 py-3 rounded-lg shadow-2xl font-dm text-sm flex items-center gap-3 transition-all duration-300 ${
+          uploadToast.type === 'error' ? 'bg-[#330000] border-[#E3000F] text-white' :
+          uploadToast.type === 'success' ? 'bg-[#003311] border-[#00FF55] text-white' :
+          'bg-[#1a1a1a] border-white/20 text-off-white'
+        }`}>
+          {uploadToast.type === 'uploading' && uploadToast.progress !== undefined && (
+            <div className="relative flex items-center justify-center w-6 h-6">
+              <svg className="transform -rotate-90 w-6 h-6">
+                <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)" strokeWidth="2" fill="transparent" />
+                <circle cx="12" cy="12" r="10" stroke="#E3000F" strokeWidth="2" fill="transparent"
+                  strokeDasharray={2 * Math.PI * 10}
+                  strokeDashoffset={(2 * Math.PI * 10) - ((uploadToast.progress / 100) * (2 * Math.PI * 10))}
+                  className="transition-all duration-300 ease-out" />
+              </svg>
+            </div>
+          )}
+          <span>{uploadToast.message}</span>
         </div>
       )}
 
@@ -765,31 +781,33 @@ const Home: React.FC = () => {
             {/* Action Buttons */}
             <div className="flex items-center gap-3 justify-end">
               <button
-                disabled={submitting}
                 onClick={() => {
                   URL.revokeObjectURL(pendingFile.previewUrl);
                   setPendingFile(null);
                 }}
-                className="px-4 py-2 border border-white/10 text-white/60 hover:text-white/80 rounded transition disabled:opacity-40"
+                className="px-4 py-2 border border-white/10 text-white/60 hover:text-white/80 rounded transition"
               >
                 Cancel
               </button>
               <button
-                disabled={submitting}
                 onClick={async () => {
                   const consentCheck = document.getElementById('consent-check') as HTMLInputElement;
                   if (!consentCheck?.checked) {
-                    setToast('Please check the consent box to proceed.');
+                    setUploadToast({ type: 'error', message: 'Please check the consent box to proceed.' });
                     return;
                   }
-                  setSubmitting(true);
+                  
                   const file = pendingFile;
+                  // Close modal immediately and start background upload
                   setPendingFile(null);
-                  URL.revokeObjectURL(file.previewUrl);
+                  setUploadToast({ type: 'uploading', message: 'Uploading...', progress: 0 });
+
                   try {
                     // 1. Upload to Cloudinary NOW (after consent)
-                    const cloudResult = await uploadToCloudinary(file.blob, file.filename, file.kind);
-                    // cloudResult stored; not previewed locally — only DB-approved items show in gallery
+                    const cloudResult = await uploadToCloudinary(file.blob, file.filename, file.kind, (progress) => {
+                      setUploadToast({ type: 'uploading', message: 'Uploading...', progress });
+                    });
+                    
                     // 2. Register in DB
                     const res = await fetch('/api/personal/register', {
                       method: 'POST',
@@ -804,20 +822,20 @@ const Home: React.FC = () => {
                       }),
                     });
                     if (res.ok) {
-                      setToast('✓ Submitted for admin approval. Thank you!');
+                      setUploadToast({ type: 'success', message: '✓ Submitted for admin approval. Thank you!' });
                     } else {
                       const body = await res.json().catch(() => ({}));
-                      setToast(`⚠ Uploaded to Cloudinary but DB save failed: ${body?.detail || body?.message || res.status}`);
+                      setUploadToast({ type: 'error', message: `⚠ Uploaded to Cloudinary but DB save failed: ${body?.detail || body?.message || res.status}` });
                     }
                   } catch (err: any) {
-                    setToast(`⚠ Upload failed: ${err?.message ?? 'Unknown error'}`);
+                    setUploadToast({ type: 'error', message: `⚠ Upload failed: ${err?.message ?? 'Unknown error'}` });
                   } finally {
-                    setSubmitting(false);
+                    URL.revokeObjectURL(file.previewUrl);
                   }
                 }}
-                className="px-6 py-2 bg-conflagrator-red hover:bg-red-600 text-white rounded font-dm font-medium transition disabled:opacity-40"
+                className="px-6 py-2 bg-conflagrator-red hover:bg-red-600 text-white rounded font-dm font-medium transition"
               >
-                {submitting ? 'Uploading…' : 'Confirm and send'}
+                Confirm and send
               </button>
             </div>
           </div>
