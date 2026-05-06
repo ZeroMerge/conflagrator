@@ -1,12 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getAdminSessionFromRequest } from '../_lib/adminSession';
+import { getAdminSession } from '../_lib/adminSession';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method !== 'GET') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
-    const session = getAdminSessionFromRequest(req);
+    const session = getAdminSession(req);
     if (!session) {
         return res.status(401).json({ authenticated: false });
     }
