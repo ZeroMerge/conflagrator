@@ -157,14 +157,17 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onFileReady }) => {
     };
 
     return (
-        <div className="w-full">
+        <div className="w-full font-dm">
             <div
                 onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); }}
                 onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); }}
                 onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); handleFiles(e.dataTransfer.files); }}
-                className={`relative border-2 border-dashed rounded-lg p-8 md:p-12 transition-all duration-300 ${
-                    isDragging ? 'border-conflagrator-red bg-conflagrator-red/5' : 'border-white/20 bg-white/2 hover:border-white/30'
+                className={`relative flex flex-col items-center justify-center border-2 border-dashed rounded-2xl p-10 md:p-16 transition-all duration-500 ease-out cursor-pointer overflow-hidden ${
+                    isDragging 
+                        ? 'border-conflagrator-red bg-conflagrator-red/10 scale-[1.02] shadow-[0_0_30px_rgba(227,0,15,0.15)]' 
+                        : 'border-white/10 bg-white/[0.01] hover:border-white/20 hover:bg-white/[0.03]'
                 }`}
+                onClick={() => !processing && fileInputRef.current?.click()}
             >
                 <input
                     ref={fileInputRef}
@@ -175,54 +178,65 @@ const UploadZone: React.FC<UploadZoneProps> = ({ onFileReady }) => {
                     disabled={processing}
                 />
 
-                <div className="flex flex-col items-center gap-3">
-                    <Upload size={28} className="text-white/20" />
-                    <div className="text-center">
-                        <p className="font-dm font-medium text-[12px] md:text-sm text-white/40 mb-1">
-                            Share (quietly)
-                        </p>
-                        <p className="font-dm text-[11px] md:text-[10px] text-white/30 mb-3">
+                <div className="flex flex-col items-center gap-5 relative z-10">
+                    <div className="p-4 rounded-full bg-white/[0.03] border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.02)]">
+                        <Upload size={32} className="text-white/60" strokeWidth={1.5} />
+                    </div>
+                    
+                    <div className="text-center space-y-2">
+                        <h3 className="font-dm font-semibold text-lg md:text-xl text-off-white tracking-tight">
+                            Share <span className="text-conflagrator-red">(quietly)</span>
+                        </h3>
+                        <p className="font-dm text-xs md:text-sm text-white/50">
                             Drag & drop, or{' '}
-                            <button
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={processing}
-                                className="text-white/20 hover:text-white/40 disabled:opacity-50"
-                            >
-                                browse
-                            </button>
+                            <span className="text-white/80 underline decoration-white/30 underline-offset-4 hover:text-white hover:decoration-white transition-colors">
+                                browse your device
+                            </span>
                         </p>
-                        <p className="font-dm text-[10px] text-white/30">
-                            JPG, PNG, WebP, MP4, WebM, MOV • Up to 10MB • EXIF stripped before upload
+                    </div>
+
+                    <div className="mt-2 px-4 py-1.5 rounded-full bg-white/[0.03] border border-white/5">
+                        <p className="font-dm text-[10px] md:text-xs tracking-wide text-white/30 uppercase">
+                            JPG, PNG, WebP, MP4, MOV • Up to 10MB
                         </p>
                     </div>
                 </div>
 
                 {processing && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-deep-black/80 rounded-lg backdrop-blur-sm">
-                        <div className="flex flex-col items-center gap-3">
-                            <div className="w-8 h-8 border-2 border-conflagrator-red/30 border-t-conflagrator-red rounded-full animate-spin" />
-                            <p className="font-dm text-xs text-white/60">Processing…</p>
-                        </div>
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-deep-black/90 backdrop-blur-md rounded-2xl">
+                        <div className="w-10 h-10 border-2 border-white/10 border-t-conflagrator-red rounded-full animate-spin mb-4" />
+                        <p className="font-dm text-sm tracking-widest text-white/60 uppercase">Processing Media...</p>
                     </div>
                 )}
             </div>
 
             {error && (
-                <div className="mt-4 flex items-center gap-3 p-4 rounded text-sm font-dm bg-conflagrator-red/10 text-conflagrator-red border border-conflagrator-red/30">
-                    <AlertCircle size={18} className="flex-shrink-0" />
-                    <p>{error}</p>
+                <div className="mt-5 flex items-start gap-3 p-4 rounded-lg bg-conflagrator-red/5 border border-conflagrator-red/20 animate-in fade-in slide-in-from-top-2">
+                    <AlertCircle size={18} className="text-conflagrator-red shrink-0 mt-0.5" />
+                    <p className="text-sm font-dm text-white/80 leading-relaxed">{error}</p>
                 </div>
             )}
 
-            <div className="mt-6 pt-6 border-t border-white/10">
-                <p className="font-dm text-[10px] uppercase tracking-widest text-white/30 mb-2">Security</p>
-                <ul className="space-y-1 text-[10px] text-white/40 font-dm">
-                    <li>✓ EXIF data & metadata stripped during local transform</li>
-                    <li>✓ Images resized to 2400px max (safe web size)</li>
-                    <li>✓ Filename randomized (prevents enumeration)</li>
-                    <li>✓ Upload to Cloudinary only happens after you give consent</li>
-                    <li>✓ Requires admin approval before public display</li>
-                </ul>
+            <div className="mt-8 pt-8 border-t border-white/5">
+                <p className="font-dm text-[11px] font-bold uppercase tracking-[0.2em] text-white/20 mb-4">
+                    Security & Privacy Protocol
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                    {[
+                        'EXIF data & metadata automatically stripped',
+                        'Images resized to 2400px max (safe web size)',
+                        'Filename randomized to prevent enumeration',
+                        'Upload only happens after explicit consent',
+                        'Requires admin approval before public display'
+                    ].map((item, i) => (
+                        <div key={i} className="flex items-start gap-2.5">
+                            <div className="mt-1 w-1.5 h-1.5 rounded-full bg-conflagrator-red/80 shrink-0" />
+                            <span className="text-[11px] md:text-xs text-white/40 leading-relaxed tracking-wide">
+                                {item}
+                            </span>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     );
