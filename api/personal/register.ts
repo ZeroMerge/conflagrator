@@ -40,7 +40,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).json({ message: 'Upload registered for review', upload: rows[0] });
     } catch (error: any) {
-        console.error('[register] error:', error?.message);
-        return res.status(500).json({ message: 'Failed to register upload', error: error?.message ?? 'Unknown' });
+        const msg = error?.message ?? 'Unknown';
+        console.error('[register] Neon error:', msg);
+        return res.status(500).json({
+            message: 'Database query failed',
+            detail: msg,
+            hint: msg.includes('does not exist')
+                ? 'The personal_uploads table is missing. Run database/personal_uploads.sql in your Neon dashboard.'
+                : msg.includes('password') || msg.includes('auth')
+                ? 'DATABASE_URL password is wrong. Check Vercel env vars.'
+                : 'Check Vercel Function logs for details.',
+        });
     }
 }
