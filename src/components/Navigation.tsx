@@ -96,7 +96,7 @@ const Navigation: React.FC = () => {
         {/* ── DESKTOP: logo + nav centered together ── */}
         <div className="desktop-nav" style={{ display: 'flex', alignItems: 'center', gap: '40px' }}>
           <Link to="/" onClick={handleFlameClick} style={{ display: 'flex', alignItems: 'center', padding: '4px', WebkitTapHighlightColor: 'transparent' }}>
-            <FlameLogo className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+            <FlameLogo className="w-6 h-6 md:w-8 md:h-8 object-contain" />
           </Link>
 
           <div ref={navRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -125,7 +125,7 @@ const Navigation: React.FC = () => {
         {/* ── MOBILE: logo left · label center · hamburger right ── */}
         <div className="mobile-nav" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', padding: '0 clamp(20px, 4vw, 40px)' }}>
           <Link to="/" onClick={handleFlameClick} style={{ display: 'flex', alignItems: 'center', padding: '4px', WebkitTapHighlightColor: 'transparent' }}>
-            <FlameLogo className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+            <FlameLogo className="w-6 h-6 md:w-8 md:h-8 object-contain" />
           </Link>
           {/* Centered label — absolute so logo/hamburger don't affect it */}
           <span style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', ...lbl, color: 'rgba(244,243,240,0.35)', fontSize: '9px', pointerEvents: 'none' }}>

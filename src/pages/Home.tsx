@@ -30,7 +30,7 @@ const EditorialLine = () => (
 gsap.registerPlugin(ScrollTrigger);
 
 /* ══════════════════════════════
-   HERO (Cinematic Spotlight + Refined Spark Trail)
+   FINAL HERO: Spotlight + Kinetic Text + Refined Sparks
 ══════════════════════════════ */
 const Hero: React.FC = () => {
   const age = useAgeCounter();
@@ -43,15 +43,21 @@ const Hero: React.FC = () => {
     let animationFrameId: number;
     let particles: Particle[] = [];
 
-    // --- CANVAS EMBER SYSTEM ---
+    // --- 1. CANVAS EMBER SYSTEM (Fixed Offset for Retina Displays) ---
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
 
     const resizeCanvas = () => {
-      if (canvas && sectionRef.current) {
-        // Ensure the canvas perfectly matches the section size to fix any offset
-        canvas.width = sectionRef.current.offsetWidth;
-        canvas.height = sectionRef.current.offsetHeight;
+      if (canvas && sectionRef.current && ctx) {
+        const rect = sectionRef.current.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        canvas.style.width = `${rect.width}px`;
+        canvas.style.height = `${rect.height}px`;
+
+        ctx.scale(dpr, dpr);
       }
     };
 
@@ -71,12 +77,10 @@ const Hero: React.FC = () => {
       constructor(x: number, y: number, isBurst: boolean = false) {
         this.x = x;
         this.y = y;
-        // Refined physics: Very tight, subtle drift upwards
         this.vx = (Math.random() - 0.5) * (isBurst ? 3 : 0.5);
-        this.vy = (Math.random() * -1.5) - 0.2; // Always drift up
-        this.maxLife = Math.random() * 30 + 20; // Shorter life for a cleaner trail
+        this.vy = (Math.random() * -1.5) - 0.2;
+        this.maxLife = Math.random() * 30 + 20;
         this.life = this.maxLife;
-        // Much smaller size so they look like sparks, not big circles
         this.size = Math.random() * 1.5 + 0.5;
 
         const colors = ['#E3000F', '#ff4d4d', '#ff9933'];
@@ -87,13 +91,13 @@ const Hero: React.FC = () => {
         this.x += this.vx;
         this.y += this.vy;
         this.life--;
-        this.size *= 0.95; // Shrink as it burns out
+        this.size *= 0.95;
       }
 
       draw(context: CanvasRenderingContext2D) {
         context.globalAlpha = Math.max(0, this.life / this.maxLife);
         context.fillStyle = this.color;
-        context.shadowBlur = 8; // Tighter glow
+        context.shadowBlur = 8;
         context.shadowColor = this.color;
         context.beginPath();
         context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -104,11 +108,10 @@ const Hero: React.FC = () => {
 
     const renderParticles = () => {
       if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width / (window.devicePixelRatio || 1), canvas.height / (window.devicePixelRatio || 1));
 
-      // Subtle idle sparks from the bottom
       if (Math.random() < 0.05) {
-        particles.push(new Particle(Math.random() * canvas.width, canvas.height + 10, false));
+        particles.push(new Particle(Math.random() * (canvas.width / (window.devicePixelRatio || 1)), (canvas.height / (window.devicePixelRatio || 1)) + 10, false));
       }
 
       for (let i = particles.length - 1; i >= 0; i--) {
@@ -123,7 +126,7 @@ const Hero: React.FC = () => {
 
     renderParticles();
 
-    // --- GSAP TEXT & SPOTLIGHT TRACKING ---
+    // --- 2. GSAP TEXT & SPOTLIGHT TRACKING ---
     const ctxGsap = gsap.context(() => {
       if (imgRef.current) {
         gsap.to(imgRef.current, {
@@ -142,9 +145,16 @@ const Hero: React.FC = () => {
 
         let cachedCenters: { x: number; y: number; el: Element }[] = [];
         const calculateCenters = () => {
+          if (!sectionRef.current) return;
+          const sectionRect = sectionRef.current.getBoundingClientRect();
+
           cachedCenters = Array.from(wordElements).map((el) => {
             const rect = el.getBoundingClientRect();
-            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, el };
+            return {
+              x: rect.left - sectionRect.left + rect.width / 2,
+              y: rect.top - sectionRect.top + rect.height / 2,
+              el
+            };
           });
         };
 
@@ -156,35 +166,33 @@ const Hero: React.FC = () => {
         const handleInteraction = (clientX: number, clientY: number, isHover: boolean) => {
           if (!ticking) {
             window.requestAnimationFrame(() => {
-              if (sectionRef.current) {
-                // Get exact bounds to fix ANY cursor offset
-                const rect = sectionRef.current.getBoundingClientRect();
-                const localX = clientX - rect.left;
-                const localY = clientY - rect.top;
+              if (sectionRef.current && imgRef.current) {
+                const sectionRect = sectionRef.current.getBoundingClientRect();
+                const sectionX = clientX - sectionRect.left;
+                const sectionY = clientY - sectionRect.top;
 
-                // 1. Update Spotlight Mask Position
-                sectionRef.current.style.setProperty('--spotlight-x', `${localX}px`);
-                sectionRef.current.style.setProperty('--spotlight-y', `${localY}px`);
+                const imgRect = imgRef.current.getBoundingClientRect();
+                const imgX = clientX - imgRect.left;
+                const imgY = clientY - imgRect.top;
 
-                // 2. Spawn Refined Spark Trail
-                // Using Math.random() > 0.3 reduces the amount of sparks spawned per frame, making it much cleaner
+                sectionRef.current.style.setProperty('--spotlight-x', `${imgX}px`);
+                sectionRef.current.style.setProperty('--spotlight-y', `${imgY}px`);
+
                 if (isHover && Math.random() > 0.3) {
-                  particles.push(new Particle(localX, localY, false));
+                  particles.push(new Particle(sectionX, sectionY, false));
                 }
+
+                cachedCenters.forEach((item) => {
+                  const distX = sectionX - item.x;
+                  const distY = sectionY - item.y;
+                  const distance = Math.sqrt(distX * distX + distY * distY);
+
+                  let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
+                  weight = gsap.utils.clamp(100, 900, weight);
+
+                  gsap.to(item.el, { fontWeight: weight, duration: 0.2, ease: 'power2.out' });
+                });
               }
-
-              // 3. Kinetic Text Morphing (Uses ClientX/Y because text bounds are viewport-relative)
-              cachedCenters.forEach((item) => {
-                const distX = clientX - item.x;
-                const distY = clientY - item.y;
-                const distance = Math.sqrt(distX * distX + distY * distY);
-
-                let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
-                weight = gsap.utils.clamp(100, 900, weight);
-
-                gsap.to(item.el, { fontWeight: weight, duration: 0.2, ease: 'power2.out' });
-              });
-
               ticking = false;
             });
             ticking = true;
@@ -197,7 +205,6 @@ const Hero: React.FC = () => {
           if (e.touches.length > 0) {
             const touch = e.touches[0];
             handleInteraction(touch.clientX, touch.clientY, false);
-            // Small spark burst on tap
             if (sectionRef.current) {
               const rect = sectionRef.current.getBoundingClientRect();
               for (let i = 0; i < 8; i++) {
@@ -247,33 +254,34 @@ const Hero: React.FC = () => {
       {/* LAYER 1 & 2: Base Image & Spotlight Mask */}
       <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform pointer-events-none z-0">
 
-        {/* Deep, gritty, dark grayscale image */}
+        {/* Base: Deep, gritty, dark grayscale image */}
         <img
           src="/images/hero-portrait-main.jpg"
           alt="Oreoluwa Base"
           className="absolute inset-0 w-full h-full object-cover object-top grayscale contrast-125 brightness-50 opacity-60"
         />
 
-        {/* Bright, full color, masked by the mouse spotlight */}
+        {/* Reveal: Natural color, perfectly masked by the mouse spotlight */}
         <div
           className="absolute inset-0 w-full h-full transition-opacity duration-300"
           style={{
-            WebkitMaskImage: 'radial-gradient(circle 300px at var(--spotlight-x, 80vw) var(--spotlight-y, 40vh), black 10%, transparent 100%)',
-            maskImage: 'radial-gradient(circle 300px at var(--spotlight-x, 80vw) var(--spotlight-y, 40vh), black 10%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(circle 300px at var(--spotlight-x, -1000px) var(--spotlight-y, -1000px), black 10%, transparent 100%)',
+            maskImage: 'radial-gradient(circle 300px at var(--spotlight-x, -1000px) var(--spotlight-y, -1000px), black 10%, transparent 100%)',
           }}
         >
+          {/* FIX: Removed contrast-110 and brightness-110 so the skin highlights don't blow out */}
           <img
             src="/images/hero-portrait-main.jpg"
             alt="Oreoluwa Revealed"
-            className="w-full h-full object-cover object-top contrast-110 brightness-110"
+            className="w-full h-full object-cover object-top"
           />
         </div>
 
-        {/* Shadow Gradient to ensure text stays readable */}
+        {/* Shadow Gradient to ensure text stays readable on mobile layout */}
         <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/60 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-transparent md:to-transparent pointer-events-none" />
       </div>
 
-      {/* LAYER 3: The Spark Canvas (Between Image and Text) */}
+      {/* LAYER 3: The Spark Canvas */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full pointer-events-none z-[5]"
@@ -301,6 +309,7 @@ const Hero: React.FC = () => {
     </section>
   );
 };
+
 
 
 /* ══════════════════════════════
@@ -422,7 +431,7 @@ const ChapterAuthor: React.FC = () => {
       <div className="max-w-5xl mx-auto">
         <ScrollReveal>
           <p className="font-dm font-black text-4xl md:text-7xl text-off-white leading-[0.9] tracking-tighter mb-20">
-            HE WROTE IT AT 17.<br /><span className="text-conflagrator-red">NOBODY TOLD HIM TO.</span>
+            HE WROTE IT AT 17,<br /><span className="text-conflagrator-red">STILL A MUST READ.</span>
           </p>
         </ScrollReveal>
 
@@ -619,7 +628,7 @@ const ChapterBicycle: React.FC = () => {
       <div className="px-6 md:px-16 lg:px-24 max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
         <ScrollReveal>
           <p className="font-dm font-black text-6xl md:text-8xl tracking-tighter leading-[0.85] text-off-white">
-            THE<br /><span className="text-conflagrator-red">BICYCLE.</span>
+            A LESSON FROM<br /><span className="text-conflagrator-red">THE BICYCLE.</span>
           </p>
         </ScrollReveal>
         <ScrollReveal delay={0.2}>
@@ -694,7 +703,7 @@ const ChapterBuilder: React.FC = () => {
           <div className={`absolute inset-0 bg-conflagrator-red p-8 md:p-16 flex flex-col justify-between transition-all duration-700 ease-in-out origin-bottom-left ${flipped ? 'z-10 -translate-x-[110%] -rotate-6 opacity-0' : 'z-20 translate-x-0 rotate-0'}`}>
             <div className="relative z-10">
               <h3 className="font-dm font-black text-5xl md:text-7xl text-off-white tracking-tighter mb-6">KLiP</h3>
-              <p className="font-dm font-medium text-lg md:text-xl text-off-white/90 max-w-lg leading-relaxed">He looked at Nigerian politics and asked a simple question: what if the people inside it were built on the right foundation KLiP is the answer he built for every leader.</p>
+              <p className="font-dm font-medium text-lg md:text-xl text-off-white/90 max-w-lg leading-relaxed">He looked at Nigerian politics and asked a simple question: what if the people inside it were built on the right foundation and KLiP was born <Flame className="inline-block w-5 h-5 -mt-1 text-white" />.</p>
             </div>
             <div className="relative z-10 flex justify-between items-center w-full mt-12">
               <button className="bg-deep-black text-off-white font-dm font-bold text-xs md:text-sm tracking-widest uppercase px-6 md:px-8 py-3 md:py-4 hover:bg-black transition-colors" onClick={() => window.location.href = '/klip'}>Explore KLiP</button>

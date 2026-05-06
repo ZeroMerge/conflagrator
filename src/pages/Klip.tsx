@@ -50,7 +50,7 @@ const TeamGrid: React.FC = () => {
                 <ScrollReveal>
                     <span className="font-dm font-bold text-[10px] md:text-xs tracking-widest uppercase text-conflagrator-red block mb-4 md:mb-6">The Conflagrator Team</span>
                     <h2 className="font-dm font-black text-4xl md:text-7xl tracking-tighter text-off-white uppercase leading-[0.9]">
-                        BOUNDED BY<br /><span className="text-conflagrator-red">IGNITE VISION.</span>
+                        BOUNDED BY<br /><span className="text-conflagrator-red">ONE BURNING FLAME.</span>
                     </h2>
                 </ScrollReveal>
             </div>
