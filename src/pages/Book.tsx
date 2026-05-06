@@ -9,12 +9,12 @@ import type { ParsedPage, TextBlock } from '@/data/book-text';
    CHAPTERS META 
 ══════════════════════════════ */
 const CHAPTERS = [
-  { number: 1, title: 'Rough Year', tease: 'The early years that shape us, even before we know ourselves.' },
-  { number: 2, title: 'First Year: Your Friends', tease: 'The company you keep is the person you are becoming.' },
-  { number: 3, title: 'Second Year: Your Thoughts', tease: 'You are who your thoughts say you are.' },
-  { number: 4, title: 'Third Year: Your Failure', tease: 'Your failure is raw gold — it just needs to be refined.' },
-  { number: 5, title: 'Fourth Year: Your Responsibility', tease: 'The hardest thing to take responsibility for is yourself.' },
-  { number: 6, title: 'Fifth Year: Your World', tease: 'You own a territory. Beautify and control it.' },
+  { number: 1, title: 'Rough Year', tease: `Some years don't feel like lessons until you're already past them.` },
+  { number: 2, title: 'First Year: Your Friends', tease: 'Your friends are shaping you whether you asked them to or not, The company you keep is the person you are becoming.' },
+  { number: 3, title: 'Second Year: Your Thoughts', tease: 'What runs on loop in your head is quietly writing your future, You are who your thoughts say you are.' },
+  { number: 4, title: 'Third Year: Your Failure', tease: 'Most people quit right before the failure starts teaching, Your failure is raw gold.' },
+  { number: 5, title: 'Fourth Year: Your Responsibility', tease: 'Responsibility sounds simple until it is actually yours to carry, The hardest thing to take responsibility for is yourself.' },
+  { number: 6, title: 'Fifth Year: Your World', tease: 'Your world is exactly as big as you decide to make it.' },
   { number: 7, title: 'Sixth Year: Your Vision', tease: 'When your eye is malfunctioning, we call it a vision defect.' },
 ];
 
@@ -529,7 +529,7 @@ function paginateWithMeasurement(
       const para = paras[i];
       const p = document.createElement('p');
       Object.assign(p.style, { margin: '0', padding: '0', textIndent: '1.3em' });
-      
+
       const isDropCap = chapterStartPending && isFirstPage && i === 0;
       if (isDropCap) {
         p.style.textIndent = '0';
@@ -858,10 +858,10 @@ const AuthorBlock: React.FC = () => (
             SALAMI<br />OREOLUWA
           </h3>
           <p className="font-dm font-medium text-lg md:text-xl text-white/50 leading-relaxed mb-10">
-            Founder of KLiP and the Ignition Movement. He wrote Perfect Years at seventeen.
+            He wrote Perfect Years at seventeen, founded KLiP, and started the Ignition Movement and now he is twenty-one.
           </p>
           <a href="https://linkedin.com/in/oreoluwasalami" target="_blank" rel="noopener noreferrer" className="font-dm font-bold text-xs tracking-widest uppercase text-white/40 hover:text-off-white transition-colors flex items-center justify-center md:justify-start gap-2">
-            See him on LinkedIn <span>→</span>
+            Find him on LinkedIn <span>→</span>
           </a>
         </div>
       </ScrollReveal>

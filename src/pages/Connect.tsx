@@ -61,13 +61,14 @@ const TerminalForm: React.FC = () => {
     setState('sending');
 
     try {
-      // WEB3FORMS INTEGRATION
-      const response = await fetch("https://api.web3forms.com/submit", {
+      // FORMSPREE INTEGRATION
+      const response = await fetch("https://formspree.io/f/mnjwvgpn", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
-          access_key: "YOUR_ACCESS_KEY_HERE",
-          subject: "New Contact from The Conflagrator",
           name: data.name,
           email: data.email,
           message: data.message

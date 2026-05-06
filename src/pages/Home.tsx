@@ -26,20 +26,105 @@ const EditorialLine = () => (
   </div>
 );
 
+
 gsap.registerPlugin(ScrollTrigger);
 
 /* ══════════════════════════════
-   HERO (With Kinetic Typography)
+   HERO (Cinematic Spotlight + Refined Spark Trail)
 ══════════════════════════════ */
 const Hero: React.FC = () => {
   const age = useAgeCounter();
   const imgRef = useRef<HTMLDivElement>(null);
   const wordsRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    const ctx = gsap.context(() => {
-      // 1. Portrait Parallax (Existing)
+    let animationFrameId: number;
+    let particles: Particle[] = [];
+
+    // --- CANVAS EMBER SYSTEM ---
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+
+    const resizeCanvas = () => {
+      if (canvas && sectionRef.current) {
+        // Ensure the canvas perfectly matches the section size to fix any offset
+        canvas.width = sectionRef.current.offsetWidth;
+        canvas.height = sectionRef.current.offsetHeight;
+      }
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      life: number;
+      maxLife: number;
+      size: number;
+      color: string;
+
+      constructor(x: number, y: number, isBurst: boolean = false) {
+        this.x = x;
+        this.y = y;
+        // Refined physics: Very tight, subtle drift upwards
+        this.vx = (Math.random() - 0.5) * (isBurst ? 3 : 0.5);
+        this.vy = (Math.random() * -1.5) - 0.2; // Always drift up
+        this.maxLife = Math.random() * 30 + 20; // Shorter life for a cleaner trail
+        this.life = this.maxLife;
+        // Much smaller size so they look like sparks, not big circles
+        this.size = Math.random() * 1.5 + 0.5;
+
+        const colors = ['#E3000F', '#ff4d4d', '#ff9933'];
+        this.color = colors[Math.floor(Math.random() * colors.length)];
+      }
+
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life--;
+        this.size *= 0.95; // Shrink as it burns out
+      }
+
+      draw(context: CanvasRenderingContext2D) {
+        context.globalAlpha = Math.max(0, this.life / this.maxLife);
+        context.fillStyle = this.color;
+        context.shadowBlur = 8; // Tighter glow
+        context.shadowColor = this.color;
+        context.beginPath();
+        context.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        context.fill();
+        context.shadowBlur = 0;
+      }
+    }
+
+    const renderParticles = () => {
+      if (!ctx || !canvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Subtle idle sparks from the bottom
+      if (Math.random() < 0.05) {
+        particles.push(new Particle(Math.random() * canvas.width, canvas.height + 10, false));
+      }
+
+      for (let i = particles.length - 1; i >= 0; i--) {
+        particles[i].update();
+        particles[i].draw(ctx);
+        if (particles[i].life <= 0 || particles[i].size <= 0.1) {
+          particles.splice(i, 1);
+        }
+      }
+      animationFrameId = requestAnimationFrame(renderParticles);
+    };
+
+    renderParticles();
+
+    // --- GSAP TEXT & SPOTLIGHT TRACKING ---
+    const ctxGsap = gsap.context(() => {
       if (imgRef.current) {
         gsap.to(imgRef.current, {
           yPercent: 15, ease: 'none',
@@ -47,81 +132,156 @@ const Hero: React.FC = () => {
         });
       }
 
-      // Target all the spans we want to animate
       const wordElements = wordsRef.current?.querySelectorAll('.kinetic-word');
 
-      if (wordElements) {
-        // 2. Initial Intro Reveal (Start thin, animate in)
+      if (wordElements && wordElements.length > 0) {
         gsap.fromTo(wordElements,
           { opacity: 0, x: -30, fontWeight: 100 },
           { opacity: 1, x: 0, fontWeight: 300, duration: 1.2, stagger: 0.1, ease: 'power3.out', delay: 0.2 }
         );
 
-        // 3. The Kinetic Morphing Logic
-        const handleMouseMove = (e: MouseEvent) => {
-          const { clientY, clientX } = e;
-
-          wordElements.forEach((word) => {
-            const rect = word.getBoundingClientRect();
-
-            // Find the center point of each specific word
-            const wordCenterY = rect.top + rect.height / 2;
-            const wordCenterX = rect.left + rect.width / 2;
-
-            // Calculate the distance from the cursor to the word's center
-            const distX = clientX - wordCenterX;
-            const distY = clientY - wordCenterY;
-            const distance = Math.sqrt(distX * distX + distY * distY);
-
-            // Map the distance to a font weight. 
-            // 0px away = 900 weight. 600px away = 100 weight.
-            let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
-            weight = gsap.utils.clamp(100, 900, weight);
-
-            // Animate the weight smoothly
-            gsap.to(word, {
-              fontWeight: weight,
-              duration: 0.4,
-              ease: 'power2.out',
-            });
+        let cachedCenters: { x: number; y: number; el: Element }[] = [];
+        const calculateCenters = () => {
+          cachedCenters = Array.from(wordElements).map((el) => {
+            const rect = el.getBoundingClientRect();
+            return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, el };
           });
+        };
+
+        calculateCenters();
+        window.addEventListener('resize', calculateCenters);
+
+        let ticking = false;
+
+        const handleInteraction = (clientX: number, clientY: number, isHover: boolean) => {
+          if (!ticking) {
+            window.requestAnimationFrame(() => {
+              if (sectionRef.current) {
+                // Get exact bounds to fix ANY cursor offset
+                const rect = sectionRef.current.getBoundingClientRect();
+                const localX = clientX - rect.left;
+                const localY = clientY - rect.top;
+
+                // 1. Update Spotlight Mask Position
+                sectionRef.current.style.setProperty('--spotlight-x', `${localX}px`);
+                sectionRef.current.style.setProperty('--spotlight-y', `${localY}px`);
+
+                // 2. Spawn Refined Spark Trail
+                // Using Math.random() > 0.3 reduces the amount of sparks spawned per frame, making it much cleaner
+                if (isHover && Math.random() > 0.3) {
+                  particles.push(new Particle(localX, localY, false));
+                }
+              }
+
+              // 3. Kinetic Text Morphing (Uses ClientX/Y because text bounds are viewport-relative)
+              cachedCenters.forEach((item) => {
+                const distX = clientX - item.x;
+                const distY = clientY - item.y;
+                const distance = Math.sqrt(distX * distX + distY * distY);
+
+                let weight = gsap.utils.mapRange(0, 600, 900, 100, distance);
+                weight = gsap.utils.clamp(100, 900, weight);
+
+                gsap.to(item.el, { fontWeight: weight, duration: 0.2, ease: 'power2.out' });
+              });
+
+              ticking = false;
+            });
+            ticking = true;
+          }
+        };
+
+        const handleMouseMove = (e: MouseEvent) => handleInteraction(e.clientX, e.clientY, true);
+
+        const handleTouchStart = (e: TouchEvent) => {
+          if (e.touches.length > 0) {
+            const touch = e.touches[0];
+            handleInteraction(touch.clientX, touch.clientY, false);
+            // Small spark burst on tap
+            if (sectionRef.current) {
+              const rect = sectionRef.current.getBoundingClientRect();
+              for (let i = 0; i < 8; i++) {
+                particles.push(new Particle(touch.clientX - rect.left, touch.clientY - rect.top, true));
+              }
+            }
+          }
+        };
+
+        const handleTouchMove = (e: TouchEvent) => {
+          if (e.touches.length > 0) {
+            handleInteraction(e.touches[0].clientX, e.touches[0].clientY, true);
+          }
         };
 
         const section = sectionRef.current;
         if (section) {
           section.addEventListener('mousemove', handleMouseMove);
-
-          // When the mouse leaves the hero section, reset all text back to a sleek, thin weight
+          section.addEventListener('touchstart', handleTouchStart, { passive: true });
+          section.addEventListener('touchmove', handleTouchMove, { passive: true });
           section.addEventListener('mouseleave', () => {
             gsap.to(wordElements, { fontWeight: 200, duration: 0.8, ease: 'power2.out' });
           });
         }
 
         return () => {
+          window.removeEventListener('resize', calculateCenters);
           if (section) {
             section.removeEventListener('mousemove', handleMouseMove);
-            section.removeEventListener('mouseleave', () => { });
+            section.removeEventListener('touchstart', handleTouchStart);
+            section.removeEventListener('touchmove', handleTouchMove);
           }
         };
       }
     });
 
-    return () => ctx.revert();
+    return () => {
+      ctxGsap.revert();
+      window.removeEventListener('resize', resizeCanvas);
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
   return (
     <section ref={sectionRef} className="relative w-full min-h-[100svh] bg-deep-black overflow-hidden flex flex-col justify-center cursor-crosshair">
 
-      {/* Background Portrait */}
-      <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform pointer-events-none">
-        {/* Added mix-blend-luminosity and lowered opacity slightly for a more editorial background feel */}
-        <img src="/images/hero-portrait-main.jpg" alt="Oreoluwa" className="w-full h-full object-cover object-top grayscale-[80%] contrast-125 opacity-30 mix-blend-luminosity" />
-        <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/80 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-deep-black/90 md:to-transparent" />
+      {/* LAYER 1 & 2: Base Image & Spotlight Mask */}
+      <div ref={imgRef} className="absolute inset-0 md:left-auto md:right-0 md:w-[50%] h-[115%] -top-[5%] will-change-transform pointer-events-none z-0">
+
+        {/* Deep, gritty, dark grayscale image */}
+        <img
+          src="/images/hero-portrait-main.jpg"
+          alt="Oreoluwa Base"
+          className="absolute inset-0 w-full h-full object-cover object-top grayscale contrast-125 brightness-50 opacity-60"
+        />
+
+        {/* Bright, full color, masked by the mouse spotlight */}
+        <div
+          className="absolute inset-0 w-full h-full transition-opacity duration-300"
+          style={{
+            WebkitMaskImage: 'radial-gradient(circle 300px at var(--spotlight-x, 80vw) var(--spotlight-y, 40vh), black 10%, transparent 100%)',
+            maskImage: 'radial-gradient(circle 300px at var(--spotlight-x, 80vw) var(--spotlight-y, 40vh), black 10%, transparent 100%)',
+          }}
+        >
+          <img
+            src="/images/hero-portrait-main.jpg"
+            alt="Oreoluwa Revealed"
+            className="w-full h-full object-cover object-top contrast-110 brightness-110"
+          />
+        </div>
+
+        {/* Shadow Gradient to ensure text stays readable */}
+        <div className="absolute inset-0 bg-gradient-to-t from-deep-black via-deep-black/60 to-transparent md:bg-gradient-to-r md:from-deep-black md:via-transparent md:to-transparent pointer-events-none" />
       </div>
 
+      {/* LAYER 3: The Spark Canvas (Between Image and Text) */}
+      <canvas
+        ref={canvasRef}
+        className="absolute inset-0 w-full h-full pointer-events-none z-[5]"
+      />
+
+      {/* LAYER 4: Kinetic Typography */}
       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10">
         <div ref={wordsRef} className="flex flex-col items-start justify-center min-h-[100svh] mt-12 md:mt-0 pointer-events-none">
-          {/* Note: I replaced 'font-black' with the 'kinetic-word' class target */}
           <div className="hw"><span className="kinetic-word font-dm text-[17vw] md:text-[8vw] leading-[0.85] tracking-tighter text-off-white block">SALAMI</span></div>
           <div className="hw"><span className="kinetic-word font-dm text-[14vw] md:text-[9.5vw] leading-[0.85] tracking-tighter text-off-white block mb-4 opacity-60">OREOLUWA</span></div>
           <div className="hw"><span className="kinetic-word font-dm text-[10vw] md:text-[5vw] leading-[0.85] tracking-tighter text-conflagrator-red block mt-4">AUTHOR</span></div>
@@ -131,8 +291,8 @@ const Hero: React.FC = () => {
         </div>
       </div>
 
+      {/* Static Footer Text */}
       <div className="max-w-7xl mx-auto w-full px-6 md:px-24 lg:px-32 relative z-10 pointer-events-none">
-        {/* Keeping the static font-black here for contrast against the morphing text */}
         <p className="font-dm font-black text-2xl md:text-4xl tracking-tight text-off-white">
           {age} <span className="text-conflagrator-red">YEARS</span> OF FIRE
         </p>
@@ -141,7 +301,6 @@ const Hero: React.FC = () => {
     </section>
   );
 };
-
 
 
 /* ══════════════════════════════
@@ -525,7 +684,7 @@ const ChapterBuilder: React.FC = () => {
             <h3 className="font-dm font-black text-6xl md:text-9xl absolute top-8 right-8 text-white/5 origin-top-right tracking-tighter pointer-events-none">IGNITION</h3>
             <div className="relative z-10 transition-opacity duration-500 delay-200" style={{ opacity: flipped ? 1 : 0 }}>
               <h3 className="font-dm font-black text-5xl md:text-7xl text-off-white tracking-tighter mb-6">IGNITION</h3>
-              <p className="font-dm font-medium text-lg md:text-xl text-white/60 max-w-lg leading-relaxed">Every person carries a fire inside them. Most just need someone to help them find it.</p>
+              <p className="font-dm font-medium text-lg md:text-xl text-white/60 max-w-lg leading-relaxed">Not everyone knows their fire exists. He does school visits, mentors, and trains because he has seen too many people walk through life not knowing what they are capable of.</p>
             </div>
             <div className="relative z-10 flex justify-between items-center mt-12" style={{ opacity: flipped ? 1 : 0 }}>
               <button onClick={() => setFlipped(false)} className="bg-white/10 text-off-white font-dm font-bold text-xs tracking-widest uppercase px-6 py-3 hover:bg-white/20 transition-colors">← Back to KLiP</button>
@@ -535,7 +694,7 @@ const ChapterBuilder: React.FC = () => {
           <div className={`absolute inset-0 bg-conflagrator-red p-8 md:p-16 flex flex-col justify-between transition-all duration-700 ease-in-out origin-bottom-left ${flipped ? 'z-10 -translate-x-[110%] -rotate-6 opacity-0' : 'z-20 translate-x-0 rotate-0'}`}>
             <div className="relative z-10">
               <h3 className="font-dm font-black text-5xl md:text-7xl text-off-white tracking-tighter mb-6">KLiP</h3>
-              <p className="font-dm font-medium text-lg md:text-xl text-off-white/90 max-w-lg leading-relaxed">Faith and governance were never supposed to be strangers. Built for everyone who felt that pull.</p>
+              <p className="font-dm font-medium text-lg md:text-xl text-off-white/90 max-w-lg leading-relaxed">He looked at Nigerian politics and asked a simple question: what if the people inside it were built on the right foundation KLiP is the answer he built for every leader.</p>
             </div>
             <div className="relative z-10 flex justify-between items-center w-full mt-12">
               <button className="bg-deep-black text-off-white font-dm font-bold text-xs md:text-sm tracking-widest uppercase px-6 md:px-8 py-3 md:py-4 hover:bg-black transition-colors" onClick={() => window.location.href = '/klip'}>Explore KLiP</button>
@@ -556,7 +715,7 @@ const ChapterQuotes: React.FC = () => {
     { n: '01', text: 'Willing to fall means ready to fly.', attr: 'The Bicycle Lesson', bg: 'bg-[#EAE8E3]', textCol: 'text-deep-black', iconCol: 'text-deep-black/60' },
     { n: '02', text: 'Keep moving. Balance finds you.', attr: 'July 31, 2025', bg: 'bg-conflagrator-red', textCol: 'text-off-white', iconCol: 'text-off-white/70' },
     { n: '03', text: 'Eyes ahead. Always.', attr: 'The Conflagrator', bg: 'bg-[#B30000]', textCol: 'text-off-white', iconCol: 'text-off-white/60' },
-    { n: '04', text: 'The intersection of technology and leadership is where nation-building begins.', attr: 'Oreoluwa Salami', bg: 'bg-[#330000]', textCol: 'text-off-white', iconCol: 'text-off-white/50' },
+    { n: '04', text: 'Technology without leadership just builds faster roads to the wrong places.', attr: 'On why he studies both', bg: 'bg-[#330000]', textCol: 'text-off-white', iconCol: 'text-off-white/50' },
   ];
 
   return (
@@ -620,12 +779,12 @@ const Home: React.FC = () => {
             <div>
               <ScrollReveal>
                 <p className="font-dm text-[10px] md:text-xs uppercase tracking-[0.28em] text-white/35 mb-3">
-                  Personal archive
+                  His world, up close
                 </p>
               </ScrollReveal>
               <ScrollReveal delay={0.08}>
                 <p className="font-dm font-black text-4xl md:text-7xl tracking-tighter leading-[0.86] text-off-white max-w-4xl">
-                  MOMENTS CHERISHED<br /><span className="text-conflagrator-red">BEYOND WORDS.</span>
+                  MOMENTS THAT DON'T<br /><span className="text-conflagrator-red">FIT IN A CAPTION.</span>
                 </p>
               </ScrollReveal>
             </div>
@@ -726,11 +885,10 @@ const Home: React.FC = () => {
 
       {/* Toast */}
       {uploadToast && (
-        <div className={`fixed right-6 bottom-6 z-[70] border px-4 py-3 rounded-lg shadow-2xl font-dm text-sm flex items-center gap-3 transition-all duration-300 ${
-          uploadToast.type === 'error' ? 'bg-[#330000] border-[#E3000F] text-white' :
+        <div className={`fixed right-6 bottom-6 z-[70] border px-4 py-3 rounded-lg shadow-2xl font-dm text-sm flex items-center gap-3 transition-all duration-300 ${uploadToast.type === 'error' ? 'bg-[#330000] border-[#E3000F] text-white' :
           uploadToast.type === 'success' ? 'bg-[#003311] border-[#00FF55] text-white' :
-          'bg-[#1a1a1a] border-white/20 text-off-white'
-        }`}>
+            'bg-[#1a1a1a] border-white/20 text-off-white'
+          }`}>
           {uploadToast.type === 'uploading' && uploadToast.progress !== undefined && (
             <div className="relative flex items-center justify-center w-6 h-6">
               <svg className="transform -rotate-90 w-6 h-6">
@@ -796,7 +954,7 @@ const Home: React.FC = () => {
                     setUploadToast({ type: 'error', message: 'Please check the consent box to proceed.' });
                     return;
                   }
-                  
+
                   const file = pendingFile;
                   // Close modal immediately and start background upload
                   setPendingFile(null);
@@ -807,7 +965,7 @@ const Home: React.FC = () => {
                     const cloudResult = await uploadToCloudinary(file.blob, file.filename, file.kind, (progress) => {
                       setUploadToast({ type: 'uploading', message: 'Uploading...', progress });
                     });
-                    
+
                     // 2. Register in DB
                     const res = await fetch('/api/personal/register', {
                       method: 'POST',
