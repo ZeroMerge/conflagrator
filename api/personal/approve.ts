@@ -37,12 +37,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     try {
         const sql = neon(dbUrl);
-        const rows = await sql(
-            `UPDATE personal_uploads SET status = 'approved', approved_at = NOW(), approved_by = 'admin'
-             WHERE public_id = $1 AND status = 'pending'
-             RETURNING id, public_id, secure_url, resource_type, format, bytes, folder, status, approved_at`,
-            [String(publicId)]
-        );
+        const safeId = String(publicId);
+        const rows = await sql`
+            UPDATE personal_uploads
+            SET status = 'approved', approved_at = NOW(), approved_by = 'admin'
+            WHERE public_id = ${safeId} AND status = 'pending'
+            RETURNING id, public_id, secure_url, resource_type, format, bytes, folder, status, approved_at
+        `;
         if (!rows.length) return res.status(404).json({ message: 'Upload not found or already approved' });
         return res.status(200).json({ message: 'Approved', upload: rows[0] });
     } catch (error: any) {

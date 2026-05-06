@@ -3,7 +3,7 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Flame, ArrowRight, ArrowLeft, X, Maximize2, Plus } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
-import UploadZone from '@/components/UploadZone';
+import UploadZone, { uploadToCloudinary, type ReadyFile } from '@/components/UploadZone';
 import CTAButton from '@/components/CTAButton';
 import ImageCarousel from '@/components/ImageCarousel';
 import { useAgeCounter } from '@/hooks/useAgeCounter';
@@ -594,6 +594,9 @@ const Home: React.FC = () => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<ReadyFile | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // pendingUpload is the Cloudinary result — only set AFTER consent
   const [pendingUpload, setPendingUpload] = useState<any | null>(null);
   const { items: galleryItems } = usePersonalGallery();
 
@@ -727,10 +730,9 @@ const Home: React.FC = () => {
             </button>
             <div className="mt-2">
               <UploadZone
-                onUploadMessage={(m: string) => setToast(m)}
-                onUploadSuccess={(res) => {
+                onFileReady={(file) => {
                   setUploadOpen(false);
-                  setPendingUpload(res || null);
+                  setPendingFile(file);
                 }}
               />
             </div>
@@ -745,19 +747,23 @@ const Home: React.FC = () => {
         </div>
       )}
 
-      {/* Verification / Consent modal shown after upload completes */}
-      {pendingUpload && (
+      {/* Consent modal — shown with LOCAL preview before any Cloudinary upload */}
+      {pendingFile && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="absolute inset-0" onClick={() => setPendingUpload(null)} />
+          <div className="absolute inset-0" onClick={() => {
+            URL.revokeObjectURL(pendingFile.previewUrl);
+            setPendingFile(null);
+          }} />
           <div className="relative z-50 w-full max-w-lg mx-4 md:mx-0 bg-deep-black border border-white/10 rounded-lg p-6 md:p-8 shadow-2xl">
-            <h3 className="font-dm font-bold text-lg text-off-white mb-4">Preview your upload</h3>
+            <h3 className="font-dm font-bold text-lg text-off-white mb-1">Confirm before upload</h3>
+            <p className="font-dm text-[12px] text-white/40 mb-5">This photo has not been uploaded yet. It will only go to Cloudinary if you confirm below.</p>
 
-            {/* Media Preview */}
+            {/* Local preview — from browser memory, not Cloudinary */}
             <div className="mb-6 rounded-lg overflow-hidden bg-black/50">
-              {pendingUpload.resource_type === 'video' ? (
-                <video src={pendingUpload.secure_url} controls className="w-full rounded-md max-h-80 object-cover" />
+              {pendingFile.kind === 'video' ? (
+                <video src={pendingFile.previewUrl} controls className="w-full rounded-md max-h-80 object-cover" />
               ) : (
-                <img src={pendingUpload.secure_url || pendingUpload.secureUrl || pendingUpload.url} alt="preview" className="w-full rounded-md max-h-80 object-cover" />
+                <img src={pendingFile.previewUrl} alt="preview" className="w-full rounded-md max-h-80 object-cover" />
               )}
             </div>
 
@@ -769,53 +775,66 @@ const Home: React.FC = () => {
                 id="consent-check"
               />
               <div className="text-[13px] text-white/70 group-hover:text-white/90 transition">
-                I consent to my photo being displayed publicly on this website if approved by an admin.
+                I consent to this photo being uploaded and displayed publicly on this website if approved by an admin.
               </div>
             </label>
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3 justify-end">
               <button
-                onClick={() => setPendingUpload(null)}
-                className="px-4 py-2 border border-white/10 text-white/60 hover:text-white/80 rounded transition"
+                disabled={submitting}
+                onClick={() => {
+                  URL.revokeObjectURL(pendingFile.previewUrl);
+                  setPendingFile(null);
+                }}
+                className="px-4 py-2 border border-white/10 text-white/60 hover:text-white/80 rounded transition disabled:opacity-40"
               >
                 Cancel
               </button>
               <button
+                disabled={submitting}
                 onClick={async () => {
                   const consentCheck = document.getElementById('consent-check') as HTMLInputElement;
                   if (!consentCheck?.checked) {
                     setToast('Please check the consent box to proceed.');
                     return;
                   }
-                  const upload = pendingUpload;
-                  setPendingUpload(null);
+                  setSubmitting(true);
+                  const file = pendingFile;
+                  setPendingFile(null);
+                  URL.revokeObjectURL(file.previewUrl);
                   try {
+                    // 1. Upload to Cloudinary NOW (after consent)
+                    const cloudResult = await uploadToCloudinary(file.blob, file.filename, file.kind);
+                    setPendingUpload(cloudResult);
+                    // 2. Register in DB
                     const res = await fetch('/api/personal/register', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
-                        publicId: upload.public_id,
-                        secureUrl: upload.secure_url,
-                        resourceType: upload.resource_type,
-                        format: upload.format,
-                        bytes: upload.bytes,
-                        folder: upload.folder,
+                        publicId: cloudResult.public_id,
+                        secureUrl: cloudResult.secure_url,
+                        resourceType: cloudResult.resource_type,
+                        format: cloudResult.format,
+                        bytes: cloudResult.bytes,
+                        folder: cloudResult.folder,
                       }),
                     });
                     if (res.ok) {
                       setToast('✓ Submitted for admin approval. Thank you!');
                     } else {
                       const body = await res.json().catch(() => ({}));
-                      setToast(`⚠ Uploaded to Cloudinary but couldn't save to DB: ${body?.message || res.status}`);
+                      setToast(`⚠ Uploaded to Cloudinary but DB save failed: ${body?.detail || body?.message || res.status}`);
                     }
-                  } catch {
-                    setToast('⚠ Uploaded to Cloudinary but registration failed. Please try again.');
+                  } catch (err: any) {
+                    setToast(`⚠ Upload failed: ${err?.message ?? 'Unknown error'}`);
+                  } finally {
+                    setSubmitting(false);
                   }
                 }}
-                className="px-6 py-2 bg-conflagrator-red hover:bg-red-600 text-white rounded font-dm font-medium transition"
+                className="px-6 py-2 bg-conflagrator-red hover:bg-red-600 text-white rounded font-dm font-medium transition disabled:opacity-40"
               >
-                Confirm and send
+                {submitting ? 'Uploading…' : 'Confirm and send'}
               </button>
             </div>
           </div>
