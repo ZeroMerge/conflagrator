@@ -782,14 +782,36 @@ const Home: React.FC = () => {
                 Cancel
               </button>
               <button
-                onClick={() => {
+                onClick={async () => {
                   const consentCheck = document.getElementById('consent-check') as HTMLInputElement;
                   if (!consentCheck?.checked) {
                     setToast('Please check the consent box to proceed.');
                     return;
                   }
-                  setToast('✓ Upload confirmed. Awaiting admin approval.');
+                  const upload = pendingUpload;
                   setPendingUpload(null);
+                  try {
+                    const res = await fetch('/api/personal/register', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        publicId: upload.public_id,
+                        secureUrl: upload.secure_url,
+                        resourceType: upload.resource_type,
+                        format: upload.format,
+                        bytes: upload.bytes,
+                        folder: upload.folder,
+                      }),
+                    });
+                    if (res.ok) {
+                      setToast('✓ Submitted for admin approval. Thank you!');
+                    } else {
+                      const body = await res.json().catch(() => ({}));
+                      setToast(`⚠ Uploaded to Cloudinary but couldn't save to DB: ${body?.message || res.status}`);
+                    }
+                  } catch {
+                    setToast('⚠ Uploaded to Cloudinary but registration failed. Please try again.');
+                  }
                 }}
                 className="px-6 py-2 bg-conflagrator-red hover:bg-red-600 text-white rounded font-dm font-medium transition"
               >
