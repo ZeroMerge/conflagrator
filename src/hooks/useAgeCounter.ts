@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 export function useAgeCounter(): number {
   const age = useMemo(() => {
-    const birthDate = new Date('2004-05-03');
+    const birthDate = new Date('2005-05-03');
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
